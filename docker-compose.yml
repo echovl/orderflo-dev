@@ -1,0 +1,33 @@
+services:
+  api:
+    container_name: server
+    build: .
+    environment:
+      - REDIS_ADDR=redis:6379
+      - MONGO_URL=mongodb://mongodb:27017
+      - MYSQL_DSN=dev:dev@tcp(mysql:3306)/layerhub?parseTime=true
+    ports:
+      - "8080:8080"
+
+    depends_on:
+      - redis
+
+  mysql:
+    image: mysql:8
+    ports:
+      - 3306:3306
+    volumes:
+      - ~/apps/mysql:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=dev
+      - MYSQL_PASSWORD=dev
+      - MYSQL_USER=dev
+      - MYSQL_DATABASE=layerhub
+
+  redis:
+    image: "redis:alpine"
+    command: redis-server
+    environment:
+      - REDIS_REPLICATION_MODE=master
+    ports:
+      - "6379:6379"

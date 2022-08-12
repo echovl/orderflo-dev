@@ -1,0 +1,7 @@
+.env
+renderer/build
+node_modules
+app.env
+renderer/fonts/*
+coverage.out
+tsconfig.tsbuildinfo
