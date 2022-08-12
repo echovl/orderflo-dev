@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/layerhub-io/api/db/mysql"
-	"github.com/layerhub-io/api/layerhub"
+	"github.com/echovl/orderflo-dev/db/mysql"
+	"github.com/echovl/orderflo-dev/layerhub"
 )
 
 func main() {

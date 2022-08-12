@@ -7,8 +7,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/layerhub-io/api/errors"
-	"github.com/layerhub-io/api/payments"
+	"github.com/echovl/orderflo-dev/errors"
+	"github.com/echovl/orderflo-dev/payments"
 	"golang.org/x/oauth2/clientcredentials"
 )
 

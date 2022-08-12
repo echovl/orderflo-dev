@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/layerhub-io/api/db"
+	"github.com/echovl/orderflo-dev/db"
 )
 
 type Config struct {

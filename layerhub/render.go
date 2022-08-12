@@ -9,8 +9,8 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/layerhub-io/api/errors"
-	"github.com/layerhub-io/api/upload"
+	"github.com/echovl/orderflo-dev/errors"
+	"github.com/echovl/orderflo-dev/upload"
 	"go.uber.org/zap"
 )
 

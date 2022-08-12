@@ -1,11 +1,11 @@
 package layerhub
 
 import (
-	"github.com/layerhub-io/api/cloud/github"
-	"github.com/layerhub-io/api/cloud/google"
-	"github.com/layerhub-io/api/feeds"
-	"github.com/layerhub-io/api/payments"
-	"github.com/layerhub-io/api/upload"
+	"github.com/echovl/orderflo-dev/cloud/github"
+	"github.com/echovl/orderflo-dev/cloud/google"
+	"github.com/echovl/orderflo-dev/feeds"
+	"github.com/echovl/orderflo-dev/payments"
+	"github.com/echovl/orderflo-dev/upload"
 	"go.uber.org/zap"
 )
 

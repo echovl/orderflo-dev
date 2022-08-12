@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/layerhub-io/api/testhelpers/docker"
+	"github.com/echovl/orderflo-dev/testhelpers/docker"
 )
 
 func TestRedis_Get(t *testing.T) {

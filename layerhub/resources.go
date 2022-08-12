@@ -3,7 +3,7 @@ package layerhub
 import (
 	"context"
 
-	"github.com/layerhub-io/api/feeds"
+	"github.com/echovl/orderflo-dev/feeds"
 )
 
 func (c *Core) FetchPixabayVideos(ctx context.Context, query string, page, perPage int) ([]feeds.Video, int, error) {

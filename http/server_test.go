@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/layerhub-io/api/layerhub"
+	"github.com/echovl/orderflo-dev/layerhub"
 	"go.uber.org/zap"
 )
 

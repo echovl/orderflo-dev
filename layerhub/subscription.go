@@ -3,8 +3,8 @@ package layerhub
 import (
 	"context"
 
-	"github.com/layerhub-io/api/errors"
-	"github.com/layerhub-io/api/payments"
+	"github.com/echovl/orderflo-dev/errors"
+	"github.com/echovl/orderflo-dev/payments"
 )
 
 type PaymentProvider string

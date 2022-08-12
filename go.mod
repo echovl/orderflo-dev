@@ -1,4 +1,4 @@
-module github.com/layerhub-io/api
+module github.com/echovl/orderflo-dev
 
 go 1.18
 

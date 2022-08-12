@@ -11,9 +11,9 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
-	"github.com/layerhub-io/api/db"
-	"github.com/layerhub-io/api/errors"
-	"github.com/layerhub-io/api/layerhub"
+	"github.com/echovl/orderflo-dev/db"
+	"github.com/echovl/orderflo-dev/errors"
+	"github.com/echovl/orderflo-dev/layerhub"
 	"github.com/segmentio/analytics-go"
 )
 

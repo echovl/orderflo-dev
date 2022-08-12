@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	"github.com/aws/smithy-go/ptr"
+	"github.com/echovl/orderflo-dev/layerhub"
+	"github.com/echovl/orderflo-dev/testhelpers/docker"
 	"github.com/jmoiron/sqlx"
-	"github.com/layerhub-io/api/layerhub"
-	"github.com/layerhub-io/api/testhelpers/docker"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mysql"
@@ -3674,6 +3674,7 @@ func initDB(t *testing.T, dsn string) {
 		t.Fatalf("could not migrate: %s", err)
 	}
 
+	m.Force(1)
 	if err := m.Down(); err != nil {
 		if err != migrate.ErrNoChange && err != migrate.ErrNilVersion {
 			t.Fatalf("could not migrate: %s", err)

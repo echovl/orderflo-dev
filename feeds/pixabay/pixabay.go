@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/layerhub-io/api/feeds"
+	"github.com/echovl/orderflo-dev/feeds"
 )
 
 const baseURL = "https://pixabay.com/api"

@@ -12,8 +12,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/layerhub-io/api/errors"
-	"github.com/layerhub-io/api/upload"
+	"github.com/echovl/orderflo-dev/errors"
+	"github.com/echovl/orderflo-dev/upload"
 )
 
 type S3Uploader struct {
