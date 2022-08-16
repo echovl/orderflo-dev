@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/jmoiron/sqlx"
 	"github.com/echovl/orderflo-dev/errors"
 	"github.com/echovl/orderflo-dev/layerhub"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/jmoiron/sqlx"
 )
 
 type ExtContext interface {
@@ -65,25 +65,22 @@ func (s *MySQLDB) PutUser(ctx context.Context, user *layerhub.User) error {
         email,
         phone,
         avatar,
-        company,
         email_verified,
         phone_verified,
-        role,
+        kind,
         password_hash,
-        api_token,
         source,
         created_at,
         updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
         first_name=VALUES(first_name),
         last_name=VALUES(last_name),
         email=VALUES(email),
         phone=VALUES(phone),
         avatar=VALUES(avatar),
-        company=VALUES(company),
         email_verified=VALUES(email_verified),
         phone_verified=VALUES(phone_verified),
-        role=VALUES(role),
+        kind=VALUES(kind),
         password_hash=VALUES(password_hash),
         updated_at=VALUES(updated_at)
     `
@@ -97,12 +94,10 @@ func (s *MySQLDB) PutUser(ctx context.Context, user *layerhub.User) error {
 		user.Email,
 		user.Phone,
 		user.Avatar,
-		user.Company,
 		user.EmailVerified,
 		user.PhoneVerified,
-		user.Role,
+		user.Kind,
 		user.PasswordHash,
-		user.ApiToken,
 		user.Source,
 		user.CreatedAt,
 		user.UpdatedAt,
@@ -181,6 +176,142 @@ func (s *MySQLDB) BatchCreateFonts(ctx context.Context, fonts []layerhub.Font) e
 	}
 
 	err = tx.Commit()
+	if err != nil {
+		return errors.E(errors.KindUnexpected, err)
+	}
+
+	return nil
+}
+
+func (s *MySQLDB) PutCustomer(ctx context.Context, company *layerhub.Customer) error {
+	query := `INSERT INTO customers (
+        id,
+        first_name,
+        last_name,
+        email,
+        company_id,
+        created_at,
+        updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
+        first_name=VALUES(first_name),
+        last_name=VALUES(last_name),
+        email=VALUES(email),
+        updated_at=VALUES(updated_at)
+    `
+
+	_, err := s.db.ExecContext(
+		ctx,
+		query,
+		company.ID,
+		company.FirstName,
+		company.LastName,
+		company.Email,
+		company.CompanyID,
+		company.CreatedAt,
+		company.UpdatedAt,
+	)
+	if err != nil {
+		return errors.E(errors.KindUnexpected, err)
+	}
+
+	return nil
+}
+
+func (s *MySQLDB) FindCustomers(ctx context.Context, filter *layerhub.Filter) ([]layerhub.Customer, error) {
+	query := `SELECT * FROM customers `
+	where, args := filterToQuery("customers", filter)
+	customers := []layerhub.Customer{}
+
+	err := s.db.SelectContext(ctx, &customers, query+where, args...)
+	if err != nil {
+		return nil, errors.E(errors.KindUnexpected, err)
+	}
+
+	return customers, nil
+}
+
+func (s *MySQLDB) CountCustomers(ctx context.Context, filter *layerhub.Filter) (int, error) {
+	query := `SELECT COUNT(*) AS count FROM customers `
+	where, args := filterToQuery("customers", filter)
+	count := []CountRow{}
+
+	err := s.db.SelectContext(ctx, &count, query+where, args...)
+	if err != nil {
+		return 0, errors.E(errors.KindUnexpected, err)
+	}
+
+	return count[0].Count, nil
+}
+
+func (s *MySQLDB) DeleteCustomer(ctx context.Context, id string) error {
+	query := `DELETE FROM customers WHERE id = ?`
+
+	_, err := s.db.ExecContext(ctx, query, id)
+	if err != nil {
+		return errors.E(errors.KindUnexpected, err)
+	}
+
+	return nil
+}
+
+func (s *MySQLDB) PutCompany(ctx context.Context, company *layerhub.Company) error {
+	query := `INSERT INTO companies (
+        id,
+        name,
+        user_id,
+        created_at,
+        updated_at
+    ) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
+        name=VALUES(name),
+        updated_at=VALUES(updated_at)
+    `
+
+	_, err := s.db.ExecContext(
+		ctx,
+		query,
+		company.ID,
+		company.Name,
+		company.UserID,
+		company.CreatedAt,
+		company.UpdatedAt,
+	)
+	if err != nil {
+		return errors.E(errors.KindUnexpected, err)
+	}
+
+	return nil
+}
+
+func (s *MySQLDB) FindCompanies(ctx context.Context, filter *layerhub.Filter) ([]layerhub.Company, error) {
+	query := `SELECT * FROM companies `
+	where, args := filterToQuery("companies", filter)
+	companies := []layerhub.Company{}
+
+	err := s.db.SelectContext(ctx, &companies, query+where, args...)
+	if err != nil {
+		return nil, errors.E(errors.KindUnexpected, err)
+	}
+
+	return companies, nil
+}
+
+func (s *MySQLDB) CountCompanies(ctx context.Context, filter *layerhub.Filter) (int, error) {
+	query := `SELECT COUNT(*) AS count FROM companies `
+	where, args := filterToQuery("companies", filter)
+	count := []CountRow{}
+
+	err := s.db.SelectContext(ctx, &count, query+where, args...)
+	if err != nil {
+		return 0, errors.E(errors.KindUnexpected, err)
+	}
+
+	return count[0].Count, nil
+}
+
+func (s *MySQLDB) DeleteCompany(ctx context.Context, id string) error {
+	query := `DELETE FROM companies WHERE id = ?`
+
+	_, err := s.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return errors.E(errors.KindUnexpected, err)
 	}

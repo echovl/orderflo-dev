@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/echovl/orderflo-dev/errors"
 	"github.com/echovl/orderflo-dev/layerhub"
+	"github.com/gofiber/fiber/v2"
 )
 
 const (
@@ -16,12 +16,13 @@ const (
 
 type Session struct {
 	UserID    string            `json:"user_id"`
+	UserKind  layerhub.UserKind `json:"user_kind"`
+	CompanyID string            `json:"company_id"`
 	CSRFToken string            `json:"csfr_token"`
-	Role      layerhub.UserRole `json:"role"`
 }
 
 func (s *Session) IsAdmin() bool {
-	return s.Role == layerhub.UserAdmin
+	return s.UserKind == layerhub.UserKindAdmin
 }
 
 func (s *Server) getSession(c *fiber.Ctx) (*Session, error) {
@@ -55,7 +56,7 @@ func (s *Server) initSession(c *fiber.Ctx, user *layerhub.User) (string, error) 
 
 	sess := &Session{
 		UserID:    user.ID,
-		Role:      user.Role,
+		UserKind:  user.Kind,
 		CSRFToken: layerhub.RandomString(csrfTokenLength),
 	}
 

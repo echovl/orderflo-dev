@@ -39,7 +39,7 @@ func (s *Server) initRoutes() {
 	api.Put("/templates/:id", s.requireUserSession, s.requireAdmin, s.handleUpdateTemplate)
 	api.Delete("/templates/:id", s.requireUserSession, s.requireAdmin, s.handleDeleteTemplate)
 
-	api.Get("/render/:id", s.requireAppSession, s.handleRenderDesign)
+	api.Get("/render/:id", s.requireCompanySession, s.handleRenderDesign)
 
 	api.Get("/projects", s.requireUserSession, s.handleListProject)
 	api.Get("/projects/:id", s.requireUserSession, s.handleGetProject)

@@ -12,6 +12,7 @@ type Filter struct {
 	ShortID          string
 	RegularOrShortID string
 	UserID           string
+	CompanyID        string
 	Email            string
 	ApiToken         string
 	PostscriptName   string
@@ -30,6 +31,16 @@ func (f *Filter) WithoutPagination() *Filter {
 type DB interface {
 	PutUser(ctx context.Context, user *User) error
 	FindUsers(ctx context.Context, filter *Filter) ([]User, error)
+
+	PutCompany(ctx context.Context, company *Company) error
+	FindCompanies(ctx context.Context, filter *Filter) ([]Company, error)
+	CountCompanies(ctx context.Context, filter *Filter) (int, error)
+	DeleteCompany(ctx context.Context, id string) error
+
+	PutCustomer(ctx context.Context, company *Customer) error
+	FindCustomers(ctx context.Context, filter *Filter) ([]Customer, error)
+	CountCustomers(ctx context.Context, filter *Filter) (int, error)
+	DeleteCustomer(ctx context.Context, id string) error
 
 	BatchCreateFonts(ctx context.Context, fonts []Font) error
 	PutFont(ctx context.Context, font *Font) error

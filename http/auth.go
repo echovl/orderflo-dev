@@ -1,16 +1,14 @@
 package http
 
 import (
-	"context"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/echovl/orderflo-dev/assign"
 	"github.com/echovl/orderflo-dev/errors"
 	"github.com/echovl/orderflo-dev/layerhub"
-	"github.com/segmentio/analytics-go"
+	"github.com/gofiber/fiber/v2"
 )
 
 const (
@@ -42,23 +40,10 @@ func (s *Server) requireUserSession(c *fiber.Ctx) error {
 
 	c.Locals("session", session)
 
-	user, err := s.Core.GetUser(c.Context(), session.UserID)
-	if err != nil {
-		return errors.Authentication(err)
-	}
-
-	s.segment.Enqueue(analytics.Identify{
-		UserId: session.UserID,
-		Traits: analytics.NewTraits().
-			SetFirstName(user.FirstName).
-			SetLastName(user.LastName).
-			SetEmail(user.Email),
-	})
-
 	return c.Next()
 }
 
-func (s *Server) requireAppSession(c *fiber.Ctx) error {
+func (s *Server) requireCompanySession(c *fiber.Ctx) error {
 	authHeader := c.GetReqHeaders()["Authorization"]
 	if authHeader == "" {
 		return errors.Authentication("empty authorization header")
@@ -66,15 +51,24 @@ func (s *Server) requireAppSession(c *fiber.Ctx) error {
 
 	token := strings.ReplaceAll(authHeader, "Bearer ", "")
 
-	users, err := s.Core.FindUsers(context.TODO(), &layerhub.Filter{ApiToken: token, Limit: 1})
+	companies, _, err := s.Core.FindCompanies(c.Context(), &layerhub.Filter{ApiToken: token, Limit: 1})
 	if err != nil {
 		return errors.Authentication(err)
 	}
-	if len(users) == 0 {
-		return errors.Authentication("user not found")
+	if len(companies) == 0 {
+		return errors.Authentication("company not found")
 	}
 
-	c.Locals("session", &Session{UserID: users[0].ID, Role: users[0].Role})
+	user, err := s.Core.GetUser(c.Context(), companies[0].UserID)
+	if err != nil {
+		return errors.Authentication(err)
+	}
+
+	c.Locals("session", &Session{
+		UserID:    user.ID,
+		UserKind:  user.Kind,
+		CompanyID: companies[0].ID,
+	})
 
 	return c.Next()
 }
@@ -111,7 +105,6 @@ func (s *Server) handleSignUp(c *fiber.Ctx) error {
 		Email     string `json:"email" validate:"email"`
 		Phone     string `json:"phone"`
 		Avatar    string `json:"avatar"`
-		Company   string `json:"company"`
 		Password  string `json:"password" validate:"required,min=8"`
 	}
 
@@ -130,7 +123,6 @@ func (s *Server) handleSignUp(c *fiber.Ctx) error {
 	user.Email = req.Email
 	user.Phone = req.Phone
 	user.Avatar = req.Avatar
-	user.Company = req.Company
 
 	err := s.Core.RegisterUser(c.Context(), user, req.Password)
 	if err != nil {
@@ -140,11 +132,6 @@ func (s *Server) handleSignUp(c *fiber.Ctx) error {
 	resp := response{
 		User: User{User: user},
 	}
-
-	s.segment.Enqueue(analytics.Track{
-		Event:  "Sign In",
-		UserId: user.ID,
-	})
 
 	return c.JSON(resp)
 }
@@ -179,11 +166,6 @@ func (s *Server) handleSignIn(c *fiber.Ctx) error {
 		User:      User{User: user},
 		CSRFToken: csrfToken,
 	}
-
-	s.segment.Enqueue(analytics.Track{
-		Event:  "Sign Up",
-		UserId: user.ID,
-	})
 
 	return c.JSON(resp)
 }

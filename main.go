@@ -18,7 +18,6 @@ import (
 	"github.com/echovl/orderflo-dev/layerhub"
 	"github.com/echovl/orderflo-dev/payments/paypal"
 	"github.com/echovl/orderflo-dev/upload/s3"
-	"github.com/segmentio/analytics-go"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
@@ -47,7 +46,6 @@ type Config struct {
 	GoogleClientID     string `mapstructure:"GOOGLE_CLIENT_ID"`
 	GoogleClientSecret string `mapstructure:"GOOGLE_CLIENT_SECRET"`
 	GoogleRedirectURI  string `mapstructure:"GOOGLE_REDIRECT_URI"`
-	SegmentWriteKey    string `mapstructure:"SEGMENT_WRITE_KEY"`
 }
 
 func loadConfig(path string) (Config, error) {
@@ -146,9 +144,6 @@ func main() {
 	}
 	defer redisClient.Close(context.TODO())
 
-	segClient := analytics.New(config.SegmentWriteKey)
-	defer segClient.Close()
-
 	server := http.NewServer(http.Config{
 		Core: layerhub.New(layerhub.CoreConfig{
 			Logger:          logger,
@@ -162,11 +157,10 @@ func main() {
 			GithubClient:    githubClient,
 			GoogleClient:    googleClient,
 		}),
-		SessionDB:     redisClient,
-		ReadTimeout:   15 * time.Second,
-		WriteTimeout:  10 * time.Second,
-		IdleTimeout:   15 * time.Minute,
-		SegmentClient: segClient,
+		SessionDB:    redisClient,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  15 * time.Minute,
 	})
 	if err := server.ListenAndServe(":" + config.Port); err != nil {
 		log.Panic(err)

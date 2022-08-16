@@ -4,6 +4,12 @@ DROP TABLE
   IF EXISTS users;
 
 DROP TABLE
+  IF EXISTS companies;
+
+DROP TABLE
+  IF EXISTS customers;
+
+DROP TABLE
   IF EXISTS uploads;
 
 DROP TABLE

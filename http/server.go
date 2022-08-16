@@ -9,12 +9,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-playground/validator/v10"
-	"github.com/gofiber/fiber/v2"
 	"github.com/echovl/orderflo-dev/db"
 	"github.com/echovl/orderflo-dev/errors"
 	"github.com/echovl/orderflo-dev/layerhub"
-	"github.com/segmentio/analytics-go"
+	"github.com/go-playground/validator/v10"
+	"github.com/gofiber/fiber/v2"
 )
 
 // Config holds the server settings
@@ -23,9 +22,8 @@ type Config struct {
 	WriteTimeout time.Duration
 	IdleTimeout  time.Duration
 
-	Core          *layerhub.Core
-	SessionDB     db.KeyValueDB
-	SegmentClient analytics.Client
+	Core      *layerhub.Core
+	SessionDB db.KeyValueDB
 }
 
 // Server manages the HTTP implementation of this API
@@ -34,7 +32,6 @@ type Server struct {
 	Core      *layerhub.Core
 	validate  *validator.Validate
 	sessionDB db.KeyValueDB
-	segment   analytics.Client
 }
 
 // NewServer creates a new server instance
@@ -53,7 +50,6 @@ func NewServer(conf Config) *Server {
 		Core:      conf.Core,
 		sessionDB: conf.SessionDB,
 		validate:  validate,
-		segment:   conf.SegmentClient,
 	}
 
 	srv.App = fiber.New(fiber.Config{

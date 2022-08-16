@@ -13,11 +13,11 @@ const (
 	appTokenLength = 60
 )
 
-type UserRole string
+type UserKind string
 
 const (
-	UserAdmin    UserRole = "admin"
-	UserCustomer UserRole = "customer"
+	UserKindAdmin   UserKind = "admin"
+	UserKindCompany UserKind = "company"
 )
 
 type UserSource string
@@ -35,14 +35,12 @@ type User struct {
 	Email         string     `json:"email" db:"email"`
 	Phone         string     `json:"phone" db:"phone"`
 	Avatar        string     `json:"avatar" db:"avatar"`
-	Company       string     `json:"company" db:"company"`
 	EmailVerified bool       `json:"email_verified" db:"email_verified"`
 	PhoneVerified bool       `json:"phone_verified" db:"phone_verified"`
 	PasswordHash  string     `json:"password_hash" db:"password_hash"`
-	PlanID        string     `json:"plan_id"`
-	Role          UserRole   `json:"role" db:"role"`
+	PlanID        string     `json:"plan_id" db:"plan_id"`
+	Kind          UserKind   `json:"kind" db:"kind"`
 	Source        UserSource `json:"source" db:"source"`
-	ApiToken      string     `json:"api_token" db:"api_token"`
 	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at" db:"updated_at"`
 }
@@ -51,16 +49,15 @@ func NewUser() *User {
 	now := Now()
 	return &User{
 		ID:        UniqueID("user"),
-		Role:      UserCustomer,
-		ApiToken:  NewAppToken(),
+		Kind:      UserKindCompany,
 		Source:    UserSourceEmail,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
 }
 
-// NewAppToken creates a new random token for applications
-func NewAppToken() string {
+// NewApiToken creates a new random token for applications
+func NewApiToken() string {
 	return RandomString(appTokenLength)
 }
 
