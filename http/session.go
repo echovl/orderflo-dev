@@ -19,6 +19,7 @@ type Session struct {
 	UserKind  layerhub.UserKind `json:"user_kind"`
 	CompanyID string            `json:"company_id"`
 	CSRFToken string            `json:"csfr_token"`
+	IsWeb     bool              `json:"is_web"`
 }
 
 func (s *Session) IsAdmin() bool {
@@ -58,6 +59,7 @@ func (s *Server) initSession(c *fiber.Ctx, user *layerhub.User) (string, error) 
 		UserID:    user.ID,
 		UserKind:  user.Kind,
 		CSRFToken: layerhub.RandomString(csrfTokenLength),
+		IsWeb:     true,
 	}
 
 	sessJSON, err := json.Marshal(sess)

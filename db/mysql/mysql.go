@@ -183,16 +183,17 @@ func (s *MySQLDB) BatchCreateFonts(ctx context.Context, fonts []layerhub.Font) e
 	return nil
 }
 
-func (s *MySQLDB) PutCustomer(ctx context.Context, company *layerhub.Customer) error {
+func (s *MySQLDB) PutCustomer(ctx context.Context, customer *layerhub.Customer) error {
 	query := `INSERT INTO customers (
         id,
         first_name,
         last_name,
         email,
         company_id,
+        user_id,
         created_at,
         updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
         first_name=VALUES(first_name),
         last_name=VALUES(last_name),
         email=VALUES(email),
@@ -202,13 +203,14 @@ func (s *MySQLDB) PutCustomer(ctx context.Context, company *layerhub.Customer) e
 	_, err := s.db.ExecContext(
 		ctx,
 		query,
-		company.ID,
-		company.FirstName,
-		company.LastName,
-		company.Email,
-		company.CompanyID,
-		company.CreatedAt,
-		company.UpdatedAt,
+		customer.ID,
+		customer.FirstName,
+		customer.LastName,
+		customer.Email,
+		customer.CompanyID,
+		customer.UserID,
+		customer.CreatedAt,
+		customer.UpdatedAt,
 	)
 	if err != nil {
 		return errors.E(errors.KindUnexpected, err)
@@ -258,10 +260,11 @@ func (s *MySQLDB) PutCompany(ctx context.Context, company *layerhub.Company) err
 	query := `INSERT INTO companies (
         id,
         name,
+        api_token,
         user_id,
         created_at,
         updated_at
-    ) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
+    ) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
         name=VALUES(name),
         updated_at=VALUES(updated_at)
     `
@@ -271,6 +274,7 @@ func (s *MySQLDB) PutCompany(ctx context.Context, company *layerhub.Company) err
 		query,
 		company.ID,
 		company.Name,
+		company.ApiToken,
 		company.UserID,
 		company.CreatedAt,
 		company.UpdatedAt,

@@ -27,6 +27,18 @@ func (s *Server) initRoutes() {
 	api.Get("/auth/callback/google", s.handleGoogleCallback)
 	api.Get("/auth/csrf", s.requireUserSession, s.handleGetCSRFToken)
 
+	api.Get("/companies", s.requireUserSession, s.handleListCompanies)
+	api.Get("/companies/:id", s.requireUserSession, s.handleGetCompany)
+	api.Post("/companies", s.requireUserSession, s.handleCreateCompany)
+	api.Put("/companies/:id", s.requireUserSession, s.handleUpdateCompany)
+	api.Delete("/companies/:id", s.requireUserSession, s.handleDeleteCompany)
+
+	api.Get("/customers", s.requireUserSession, s.handleListCustomers)
+	api.Get("/customers/:id", s.requireUserSession, s.handleGetCustomer)
+	api.Post("/customers", s.requireUserSession, s.handleCreateCustomer)
+	api.Put("/customers/:id", s.requireUserSession, s.handleUpdateCustomer)
+	api.Delete("/customers/:id", s.requireUserSession, s.handleDeleteCustomer)
+
 	api.Get("/frames", s.requireUserSession, s.handleListFrames)
 	api.Get("/frames/:id", s.requireUserSession, s.handleGetFrame)
 	api.Post("/frames", s.requireUserSession, s.requireAdmin, s.handleCreateFrame)

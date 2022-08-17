@@ -11,9 +11,10 @@ import (
 
 func (s *Server) handleCreateCustomer(c *fiber.Ctx) error {
 	type request struct {
-		FistName string `json:"first_name"`
-		LastName string `json:"last_name"`
-		Email    string `json:"email"`
+		FistName  string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		Email     string `json:"email"`
+		CompanyID string `json:"company_id"`
 	}
 
 	type response struct {
@@ -30,7 +31,25 @@ func (s *Server) handleCreateCustomer(c *fiber.Ctx) error {
 	customer.FirstName = req.FistName
 	customer.LastName = req.LastName
 	customer.Email = req.Email
+	customer.UserID = session.UserID
 	customer.CompanyID = session.CompanyID
+
+	if session.IsWeb {
+		if req.CompanyID == "" {
+			return errors.E(errors.KindValidation, "'company_id' with value '' failed the 'required' validation")
+		}
+
+		company, err := s.Core.GetCompany(c.Context(), req.CompanyID)
+		if err != nil {
+			return err
+		}
+
+		if company.UserID != session.UserID {
+			return errors.NotFound(fmt.Sprintf("company '%s' not found", company.ID))
+		}
+
+		customer.CompanyID = req.CompanyID
+	}
 
 	err := s.Core.PutCustomer(c.Context(), customer)
 	if err != nil {
@@ -63,7 +82,11 @@ func (s *Server) handleUpdateCustomer(c *fiber.Ctx) error {
 		return err
 	}
 
-	if !session.IsAdmin() && customer.CompanyID != session.CompanyID {
+	if customer.UserID != session.UserID {
+		return errors.NotFound(fmt.Sprintf("customer '%s' not found", id))
+	}
+
+	if !session.IsWeb && (customer.CompanyID != session.CompanyID) {
 		return errors.NotFound(fmt.Sprintf("customer '%s' not found", id))
 	}
 
@@ -93,7 +116,11 @@ func (s *Server) handleGetCustomer(c *fiber.Ctx) error {
 		return err
 	}
 
-	if !session.IsAdmin() && customer.CompanyID != session.CompanyID {
+	if customer.UserID != session.UserID {
+		return errors.NotFound(fmt.Sprintf("customer '%s' not found", id))
+	}
+
+	if !session.IsWeb && (customer.CompanyID != session.CompanyID) {
 		return errors.NotFound(fmt.Sprintf("customer '%s' not found", id))
 	}
 
@@ -119,6 +146,7 @@ func (s *Server) handleListCustomers(c *fiber.Ctx) error {
 	session, _ := s.getSession(c)
 	customers, count, err := s.Core.FindCustomers(c.Context(), &layerhub.Filter{
 		CompanyID: session.CompanyID,
+		UserID:    session.UserID,
 		Limit:     req.Limit,
 		Offset:    req.Offset,
 	})
@@ -141,7 +169,11 @@ func (s *Server) handleDeleteCustomer(c *fiber.Ctx) error {
 		return err
 	}
 
-	if !session.IsAdmin() && customer.CompanyID != session.CompanyID {
+	if customer.UserID != session.UserID {
+		return errors.NotFound(fmt.Sprintf("customer '%s' not found", id))
+	}
+
+	if !session.IsWeb && (customer.CompanyID != session.CompanyID) {
 		return errors.NotFound(fmt.Sprintf("customer '%s' not found", id))
 	}
 

@@ -23,6 +23,7 @@ CREATE TABLE
     id VARCHAR(50),
     name VARCHAR(255) NOT NULL,
     user_id VARCHAR(255) NOT NULL,
+    api_token VARCHAR(255) NOT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     PRIMARY KEY (id)
@@ -35,6 +36,7 @@ CREATE TABLE
     last_name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
     company_id VARCHAR(255) NOT NULL,
+    user_id VARCHAR(255) NOT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     PRIMARY KEY (id)

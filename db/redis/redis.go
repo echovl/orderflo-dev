@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/echovl/orderflo-dev/db"
+	"github.com/go-redis/redis/v8"
 )
 
 type Config struct {

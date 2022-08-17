@@ -68,6 +68,7 @@ func (s *Server) requireCompanySession(c *fiber.Ctx) error {
 		UserID:    user.ID,
 		UserKind:  user.Kind,
 		CompanyID: companies[0].ID,
+		IsWeb:     false,
 	})
 
 	return c.Next()

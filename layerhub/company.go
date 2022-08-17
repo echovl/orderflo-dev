@@ -59,7 +59,7 @@ func (c *Core) FindCompanies(ctx context.Context, filter *Filter) ([]Company, in
 }
 
 func (c *Core) DeleteCompany(ctx context.Context, id string) error {
-	return c.db.DeleteFont(ctx, id)
+	return c.db.DeleteCompany(ctx, id)
 }
 
 type Customer struct {
@@ -68,6 +68,7 @@ type Customer struct {
 	LastName  string    `json:"last_name" db:"last_name"`
 	Email     string    `json:"email" db:"email"`
 	CompanyID string    `json:"company_id" db:"company_id"`
+	UserID    string    `json:"user_id" db:"user_id"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }
@@ -113,5 +114,5 @@ func (c *Core) FindCustomers(ctx context.Context, filter *Filter) ([]Customer, i
 }
 
 func (c *Core) DeleteCustomer(ctx context.Context, id string) error {
-	return c.db.DeleteFont(ctx, id)
+	return c.db.DeleteCustomer(ctx, id)
 }
