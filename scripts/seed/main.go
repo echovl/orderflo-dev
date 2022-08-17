@@ -78,6 +78,10 @@ func createPublicFonts(db layerhub.DB) error {
 		return err
 	}
 
+	for i := range fonts.Fonts {
+		fonts.Fonts[i].Public = true
+	}
+
 	return db.BatchCreateFonts(context.TODO(), fonts.Fonts)
 }
 

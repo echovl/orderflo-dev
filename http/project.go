@@ -4,16 +4,17 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/echovl/orderflo-dev/assign"
 	"github.com/echovl/orderflo-dev/errors"
 	"github.com/echovl/orderflo-dev/layerhub"
+	"github.com/gofiber/fiber/v2"
 )
 
 func (s *Server) handleListProject(c *fiber.Ctx) error {
 	type request struct {
-		Limit  int `query:"limit"`
-		Offset int `query:"offset"`
+		CustomerID string `query:"customer_id"`
+		Limit      int    `query:"limit"`
+		Offset     int    `query:"offset"`
 	}
 
 	type response struct {
@@ -28,9 +29,11 @@ func (s *Server) handleListProject(c *fiber.Ctx) error {
 
 	session, _ := s.getSession(c)
 	projects, count, err := s.Core.FindProjects(c.Context(), &layerhub.Filter{
-		UserID: session.UserID,
-		Limit:  req.Limit,
-		Offset: req.Offset,
+		CustomerID: req.CustomerID,
+		CompanyID:  session.CompanyID,
+		UserID:     session.UserID,
+		Limit:      req.Limit,
+		Offset:     req.Offset,
 	})
 	if err != nil {
 		return err
@@ -52,7 +55,7 @@ func (s *Server) handleGetProject(c *fiber.Ctx) error {
 		return err
 	}
 
-	if !session.IsAdmin() && project.UserID != session.UserID {
+	if project.UserID != session.UserID || project.CompanyID != session.CompanyID {
 		return errors.NotFound(fmt.Sprintf("project '%s' not found", id))
 	}
 
@@ -66,6 +69,7 @@ func (s *Server) handleCreateProject(c *fiber.Ctx) error {
 		Description string            `json:"description"`
 		Layers      []*layerhub.Layer `json:"layers" validate:"required"`
 		Frame       layerhub.Frame    `json:"frame" validate:"required"`
+		CustomerID  string            `json:"customer_id" validate:"required"`
 	}
 
 	type response struct {
@@ -84,6 +88,8 @@ func (s *Server) handleCreateProject(c *fiber.Ctx) error {
 	project.Description = req.Description
 	project.Frame = req.Frame
 	project.Layers = req.Layers
+	project.CustomerID = req.CustomerID
+	project.CompanyID = session.CompanyID
 	project.UserID = session.UserID
 	if req.ID != "" {
 		project.ID = req.ID
@@ -122,7 +128,7 @@ func (s *Server) handleUpdateProject(c *fiber.Ctx) error {
 		return err
 	}
 
-	if !session.IsAdmin() && project.UserID != session.UserID {
+	if project.UserID != session.UserID || project.CompanyID != session.CompanyID {
 		return errors.NotFound(fmt.Sprintf("project '%s' not found", id))
 	}
 
@@ -152,7 +158,7 @@ func (s *Server) handleDeleteProject(c *fiber.Ctx) error {
 		return err
 	}
 
-	if !session.IsAdmin() && project.UserID != session.UserID {
+	if project.UserID != session.UserID || project.CompanyID != session.CompanyID {
 		return errors.NotFound(fmt.Sprintf("project '%s' not found", id))
 	}
 

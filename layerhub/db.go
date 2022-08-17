@@ -8,17 +8,20 @@ type Filter struct {
 	Limit  int
 	Offset int
 
-	ID               string
-	ShortID          string
-	RegularOrShortID string
-	UserID           string
-	CompanyID        string
-	Email            string
-	ApiToken         string
-	PostscriptName   string
-	FontEnabled      *bool
-	Visibility       FrameVisibility
-	UserSource       UserSource
+	ID                 string
+	ShortID            string
+	RegularOrShortID   string
+	CustomerID         string
+	PublicOrCustomerID string
+	CompanyID          string
+	UserID             string
+	Email              string
+	ApiToken           string
+	PostscriptName     string
+	FontEnabled        *bool
+	IncludePublicDocs  bool
+	Visibility         FrameVisibility
+	UserSource         UserSource
 }
 
 func (f *Filter) WithoutPagination() *Filter {
@@ -74,7 +77,7 @@ type DB interface {
 	DeleteUpload(ctx context.Context, id string) error
 
 	BatchCreateEnabledFonts(ctx context.Context, fonts []*EnabledFont) error
-	FindEnabledFonts(ctx context.Context, userID string) ([]EnabledFont, error)
+	FindEnabledFonts(ctx context.Context, customerID string) ([]EnabledFont, error)
 	BatchDeleteEnabledFonts(ctx context.Context, ids []string) error
 
 	PutSubscriptionPlan(ctx context.Context, plan *SubscriptionPlan) error

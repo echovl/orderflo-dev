@@ -66,14 +66,17 @@ CREATE TABLE
     style VARCHAR(255) NOT NULL,
     url VARCHAR(1000) NOT NULL,
     category VARCHAR(255) NOT NULL,
+    customer_id VARCHAR(50) NOT NULL,
+    company_id VARCHAR(50) NOT NULL,
     user_id VARCHAR(50) NOT NULL,
+    public BOOLEAN NOT NULL,
     PRIMARY KEY (id)
   );
 
 CREATE TABLE
   IF NOT EXISTS enabled_fonts (
     id VARCHAR(50),
-    user_id VARCHAR(50),
+    customer_id VARCHAR(50),
     font_id VARCHAR(50) NOT NULL,
     PRIMARY KEY (id)
   );
@@ -97,6 +100,8 @@ CREATE TABLE
     name VARCHAR(255) NOT NULL,
     type VARCHAR(255) NOT NULL,
     preview VARCHAR(255) NOT NULL,
+    customer_id VARCHAR(255) NOT NULL,
+    company_id VARCHAR(255) NOT NULL,
     user_id VARCHAR(255) NOT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
@@ -108,7 +113,10 @@ CREATE TABLE
     id VARCHAR(255),
     name VARCHAR(255) NOT NULL,
     preview VARCHAR(255) NOT NULL,
+    customer_id VARCHAR(255) NOT NULL,
+    company_id VARCHAR(255) NOT NULL,
     user_id VARCHAR(255) NOT NULL,
+    public BOOLEAN NOT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     PRIMARY KEY (id)
@@ -121,7 +129,9 @@ CREATE TABLE
     name VARCHAR(255) NOT NULL,
     type VARCHAR(255) NOT NULL,
     published BOOL NOT NULL,
-    preview VARCHAR(255),
+    preview VARCHAR(255) NOT NULL,
+    company_id VARCHAR(255) NOT NULL,
+    user_id VARCHAR(255) NOT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     PRIMARY KEY (id)

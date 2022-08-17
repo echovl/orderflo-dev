@@ -23,6 +23,8 @@ type Template struct {
 	Published   bool      `json:"published" bson:"published" db:"published"`
 	Tags        []string  `json:"tags" bson:"tags"`
 	Colors      []string  `json:"colors" bson:"colors"`
+	CompanyID   string    `json:"company_id" db:"company_id"`
+	UserID      string    `json:"user_id" db:"user_id"`
 	CreatedAt   time.Time `json:"created_at" bson:"created_at" db:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at" bson:"updated_at" db:"updated_at"`
 
@@ -141,6 +143,8 @@ type Project struct {
 	ShortID     string    `json:"short_id" db:"short_id"`
 	Type        string    `json:"type" db:"type"`
 	Name        string    `json:"name" db:"name"`
+	CustomerID  string    `json:"customer_id" db:"customer_id"`
+	CompanyID   string    `json:"company_id" db:"company_id"`
 	UserID      string    `json:"user_id" db:"user_id"`
 	Description string    `json:"description"`
 	CreatedAt   time.Time `json:"created_at" db:"created_at"`
@@ -322,12 +326,15 @@ func (c *Core) DeleteFrame(ctx context.Context, id string) error {
 
 // A wrapper for Scenify layers
 type Component struct {
-	ID        string    `json:"id" bson:"_id"`
-	Name      string    `json:"name" db:"name"`
-	Preview   string    `json:"preview" db:"preview"`
-	UserID    string    `json:"user_id" db:"user_id"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+	ID         string    `json:"id" bson:"_id"`
+	Name       string    `json:"name" db:"name"`
+	Preview    string    `json:"preview" db:"preview"`
+	CustomerID string    `json:"customer_id" db:"customer_id"`
+	CompanyID  string    `json:"company_id" db:"company_id"`
+	UserID     string    `json:"user_id" db:"user_id"`
+	Public     bool      `json:"public" db:"public"`
+	CreatedAt  time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at" db:"updated_at"`
 
 	// Layers is a collection of layers like StaticImage, StaticPath, etc.
 	Layers []*Layer `json:"layers" bson:"layers"`

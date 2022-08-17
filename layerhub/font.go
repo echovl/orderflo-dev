@@ -23,7 +23,10 @@ type Font struct {
 	Style          string `json:"style" db:"style"`
 	URL            string `json:"url" db:"url"`
 	Category       string `json:"category" db:"category"`
-	UserID         string `json:"user_id" db:"user_id"`
+	CustomerID     string `json:"customer_id,omitempty" db:"customer_id"`
+	CompanyID      string `json:"company_id,omitempty" db:"company_id"`
+	UserID         string `json:"user_id,omitempty" db:"user_id"`
+	Public         bool   `json:"public" db:"public"`
 }
 
 func NewFont() *Font {
@@ -33,22 +36,22 @@ func NewFont() *Font {
 }
 
 type EnabledFont struct {
-	ID     string `db:"id"`
-	UserID string `db:"user_id"`
-	FontID string `db:"font_id"`
+	ID         string `db:"id"`
+	CustomerID string `db:"customer_id"`
+	FontID     string `db:"font_id"`
 }
 
-func NewEnabledFont(userID, fontID string) *EnabledFont {
+func NewEnabledFont(customerID, fontID string) *EnabledFont {
 	return &EnabledFont{
-		ID:     UniqueID("enabled_font"),
-		UserID: userID,
-		FontID: fontID,
+		ID:         UniqueID("enabled_font"),
+		CustomerID: customerID,
+		FontID:     fontID,
 	}
 }
 
-func (c *Core) EnableFonts(ctx context.Context, userID string, fontIDs []string) error {
+func (c *Core) EnableFonts(ctx context.Context, customerID string, fontIDs []string) error {
 	enabledFonts := []*EnabledFont{}
-	fonts, err := c.db.FindEnabledFonts(ctx, userID)
+	fonts, err := c.db.FindEnabledFonts(ctx, customerID)
 	if err != nil {
 		return err
 	}
@@ -63,7 +66,7 @@ func (c *Core) EnableFonts(ctx context.Context, userID string, fontIDs []string)
 		}
 
 		if !fontExists {
-			enabledFonts = append(enabledFonts, NewEnabledFont(userID, fontID))
+			enabledFonts = append(enabledFonts, NewEnabledFont(customerID, fontID))
 		}
 	}
 

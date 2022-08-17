@@ -3,10 +3,10 @@ package http
 import (
 	"fmt"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/echovl/orderflo-dev/assign"
 	"github.com/echovl/orderflo-dev/errors"
 	"github.com/echovl/orderflo-dev/layerhub"
+	"github.com/gofiber/fiber/v2"
 )
 
 func (s *Server) handleEnableFonts(c *fiber.Ctx) error {
@@ -59,11 +59,12 @@ func (s *Server) handleDisableFonts(c *fiber.Ctx) error {
 
 func (s *Server) handleCreateFont(c *fiber.Ctx) error {
 	type request struct {
-		Family   string `json:"family"`
-		FullName string `json:"full_name"`
-		Style    string `json:"style"`
-		URL      string `json:"url"`
-		Category string `json:"category"`
+		Family     string `json:"family"`
+		FullName   string `json:"full_name"`
+		Style      string `json:"style"`
+		URL        string `json:"url"`
+		Category   string `json:"category"`
+		CustomerID string `json:"customer_id"`
 	}
 
 	type response struct {
@@ -83,9 +84,16 @@ func (s *Server) handleCreateFont(c *fiber.Ctx) error {
 	font.Style = req.Style
 	font.URL = req.URL
 	font.Category = req.Category
+	font.UserID = session.UserID
 
-	if !session.IsAdmin() {
-		font.UserID = session.UserID
+	if !session.IsWeb {
+		if req.CustomerID == "" {
+			return errors.E(errors.KindValidation, "'customer_id' with value '' failed the 'required' validation")
+		}
+		font.CustomerID = req.CustomerID
+		font.CompanyID = session.CompanyID
+	} else {
+		font.Public = true
 	}
 
 	err := s.Core.PutFont(c.Context(), font)
@@ -122,7 +130,11 @@ func (s *Server) handleUpdateFont(c *fiber.Ctx) error {
 		return err
 	}
 
-	if !session.IsAdmin() && font.UserID != session.UserID {
+	if font.UserID != session.UserID {
+		return errors.NotFound(fmt.Sprintf("font '%s' not found", id))
+	}
+
+	if !session.IsWeb && font.CompanyID != session.CompanyID {
 		return errors.NotFound(fmt.Sprintf("font '%s' not found", id))
 	}
 
@@ -145,7 +157,6 @@ func (s *Server) handleGetFont(c *fiber.Ctx) error {
 
 	session, _ := s.getSession(c)
 	id := string(c.Params("id"))
-
 	font, err := s.Core.GetFont(c.Context(), id)
 	if errors.Is(err, errors.KindNotFound) {
 		return errors.NotFound(fmt.Sprintf("font '%s' not found", id))
@@ -153,8 +164,14 @@ func (s *Server) handleGetFont(c *fiber.Ctx) error {
 		return err
 	}
 
-	if !session.IsAdmin() && font.UserID != session.UserID && font.UserID != "" {
-		return errors.NotFound(fmt.Sprintf("font '%s' not found", id))
+	if !font.Public {
+		if font.UserID != session.UserID {
+			return errors.NotFound(fmt.Sprintf("font '%s' not found", id))
+		}
+
+		if !session.IsWeb && font.CompanyID != session.CompanyID {
+			return errors.NotFound(fmt.Sprintf("font '%s' not found", id))
+		}
 	}
 
 	return c.JSON(response{font})
@@ -162,6 +179,7 @@ func (s *Server) handleGetFont(c *fiber.Ctx) error {
 
 func (s *Server) handleListFonts(c *fiber.Ctx) error {
 	type request struct {
+		CustomerID     string `query:"customer_id"`
 		PostscriptName string `query:"postscript_name"`
 		Enabled        *bool  `query:"enabled"`
 		Limit          int    `query:"limit"`
@@ -180,11 +198,14 @@ func (s *Server) handleListFonts(c *fiber.Ctx) error {
 
 	session, _ := s.getSession(c)
 	fonts, count, err := s.Core.FindFonts(c.Context(), &layerhub.Filter{
-		UserID:         session.UserID,
-		Limit:          req.Limit,
-		Offset:         req.Offset,
-		PostscriptName: req.PostscriptName,
-		FontEnabled:    req.Enabled,
+		CustomerID:        req.CustomerID,
+		CompanyID:         session.CompanyID,
+		UserID:            session.UserID,
+		Limit:             req.Limit,
+		Offset:            req.Offset,
+		PostscriptName:    req.PostscriptName,
+		FontEnabled:       req.Enabled,
+		IncludePublicDocs: true,
 	})
 	if err != nil {
 		return err
@@ -206,7 +227,11 @@ func (s *Server) handleDeleteFont(c *fiber.Ctx) error {
 		return err
 	}
 
-	if !session.IsAdmin() && font.UserID != session.UserID {
+	if font.UserID != session.UserID {
+		return errors.NotFound(fmt.Sprintf("font '%s' not found", id))
+	}
+
+	if !session.IsWeb && font.CompanyID != session.CompanyID {
 		return errors.NotFound(fmt.Sprintf("font '%s' not found", id))
 	}
 

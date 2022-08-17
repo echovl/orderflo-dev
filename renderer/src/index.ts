@@ -26,7 +26,6 @@ server.on("connection", (socket) => {
         try {
             const request = chunks.join("")
             const { template, params } = JSON.parse(request)
-
             const renderer = new ImageRenderer(template)
             const image = await renderer.toDataURL(params)
 

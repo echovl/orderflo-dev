@@ -146,14 +146,17 @@ func (s *MySQLDB) BatchCreateFonts(ctx context.Context, fonts []layerhub.Font) e
             preview,
             style,
             url,
+            customer_id,
+            company_id,
             user_id,
-            category
+            category,
+            public
         ) VALUES `
 
 		args := []any{}
 		values := []string{}
 		for _, pf := range fonts[batchStart:batchEnd] {
-			values = append(values, "(?, ?, ?, ?, ?, ?, ?, ?, ?)")
+			values = append(values, "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 			args = append(
 				args,
 				pf.ID,
@@ -163,8 +166,11 @@ func (s *MySQLDB) BatchCreateFonts(ctx context.Context, fonts []layerhub.Font) e
 				pf.Preview,
 				pf.Style,
 				pf.URL,
+				pf.CustomerID,
+				pf.CompanyID,
 				pf.UserID,
 				pf.Category,
+				pf.Public,
 			)
 		}
 		query += strings.Join(values, ",")
@@ -330,9 +336,9 @@ func (s *MySQLDB) FindFonts(ctx context.Context, filter *layerhub.Filter) ([]lay
 
 	if filter != nil && filter.FontEnabled != nil {
 		if *filter.FontEnabled {
-			query += "INNER JOIN enabled_fonts ON fonts.id = enabled_fonts.font_id AND enabled_fonts.user_id = ? "
+			query += "INNER JOIN enabled_fonts ON fonts.id = enabled_fonts.font_id AND enabled_fonts.customer_id = ? "
 		} else {
-			query += "LEFT JOIN enabled_fonts ON fonts.id = enabled_fonts.font_id AND enabled_fonts.user_id = ? "
+			query += "LEFT JOIN enabled_fonts ON fonts.id = enabled_fonts.font_id AND enabled_fonts.customer_id = ? "
 		}
 		args = append([]any{filter.UserID}, args...)
 	}
@@ -352,9 +358,9 @@ func (s *MySQLDB) CountFonts(ctx context.Context, filter *layerhub.Filter) (int,
 
 	if filter != nil && filter.FontEnabled != nil {
 		if *filter.FontEnabled {
-			query += "INNER JOIN enabled_fonts ON fonts.id = enabled_fonts.font_id AND enabled_fonts.user_id = ? "
+			query += "INNER JOIN enabled_fonts ON fonts.id = enabled_fonts.font_id AND enabled_fonts.customer_id = ? "
 		} else {
-			query += "LEFT JOIN enabled_fonts ON fonts.id = enabled_fonts.font_id AND enabled_fonts.user_id = ? "
+			query += "LEFT JOIN enabled_fonts ON fonts.id = enabled_fonts.font_id AND enabled_fonts.customer_id = ? "
 		}
 		args = append([]any{filter.UserID}, args...)
 	}
@@ -377,16 +383,18 @@ func (s MySQLDB) PutFont(ctx context.Context, font *layerhub.Font) error {
         style,
         url,
         category,
-        user_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
+        customer_id,
+        company_id,
+        user_id,
+        public
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
         full_name=VALUES(full_name),
         family=VALUES(family),
         postscript_name=VALUES(postscript_name),
         preview=VALUES(preview),
         style=VALUES(style),
         url=VALUES(url),
-        category=VALUES(category),
-        user_id=VALUES(user_id)
+        category=VALUES(category)
     `
 	_, err := s.db.ExecContext(
 		ctx,
@@ -399,7 +407,10 @@ func (s MySQLDB) PutFont(ctx context.Context, font *layerhub.Font) error {
 		font.Style,
 		font.URL,
 		font.Category,
+		font.CustomerID,
+		font.CompanyID,
 		font.UserID,
+		font.Public,
 	)
 	if err != nil {
 		return errors.E(errors.KindUnexpected, err)
@@ -676,10 +687,12 @@ func (s *MySQLDB) PutProject(ctx context.Context, project *layerhub.Project) err
         name,
         type,
         preview,
+        customer_id,
+        company_id,
         user_id,
         created_at,
         updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
         short_id=VALUES(short_id),
         name=VALUES(name),
         type=VALUES(type),
@@ -695,6 +708,8 @@ func (s *MySQLDB) PutProject(ctx context.Context, project *layerhub.Project) err
 		project.Name,
 		project.Type,
 		project.Preview,
+		project.CustomerID,
+		project.CompanyID,
 		project.UserID,
 		project.CreatedAt,
 		project.UpdatedAt,
@@ -916,10 +931,10 @@ func (s *MySQLDB) DeleteUpload(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *MySQLDB) FindEnabledFonts(ctx context.Context, userID string) ([]layerhub.EnabledFont, error) {
+func (s *MySQLDB) FindEnabledFonts(ctx context.Context, customerID string) ([]layerhub.EnabledFont, error) {
 	query := `SELECT * FROM enabled_fonts `
 	where, args := filterToQuery("enabled_fonts", &layerhub.Filter{
-		UserID: userID,
+		CustomerID: customerID,
 	})
 	fonts := []layerhub.EnabledFont{}
 
@@ -948,7 +963,7 @@ func (s *MySQLDB) BatchCreateEnabledFonts(ctx context.Context, fonts []*layerhub
 
 		query := `INSERT INTO enabled_fonts (
             id,
-            user_id,
+            customer_id,
             font_id
         ) VALUES `
 
@@ -959,7 +974,7 @@ func (s *MySQLDB) BatchCreateEnabledFonts(ctx context.Context, fonts []*layerhub
 			args = append(
 				args,
 				f.ID,
-				f.UserID,
+				f.CustomerID,
 				f.FontID,
 			)
 		}
@@ -1283,8 +1298,16 @@ func filterToQuery(table string, filter *layerhub.Filter) (string, []any) {
 			args = append(args, filter.RegularOrShortID, filter.RegularOrShortID)
 		}
 		if filter.UserID != "" {
-			conds = append(conds, fmt.Sprintf("(%s.user_id = ? OR %s.user_id = '')", table, table))
+			conds = append(conds, fmt.Sprintf("%s.user_id = ?", table))
 			args = append(args, filter.UserID)
+		}
+		if filter.CustomerID != "" {
+			conds = append(conds, fmt.Sprintf("%s.customer_id = ?", table))
+			args = append(args, filter.CustomerID)
+		}
+		if filter.CompanyID != "" {
+			conds = append(conds, fmt.Sprintf("%s.company_id = ?", table))
+			args = append(args, filter.CompanyID)
 		}
 		if filter.UserSource != "" {
 			conds = append(conds, "users.source = ?")
@@ -1304,6 +1327,10 @@ func filterToQuery(table string, filter *layerhub.Filter) (string, []any) {
 
 		if len(conds) != 0 {
 			query += "WHERE " + strings.Join(conds, " AND ") + " "
+		}
+
+		if filter.IncludePublicDocs {
+			query += "OR public = true "
 		}
 
 		if filter.Limit != 0 {

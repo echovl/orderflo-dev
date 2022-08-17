@@ -61,9 +61,9 @@ func (s *Server) handleCreateCustomer(c *fiber.Ctx) error {
 
 func (s *Server) handleUpdateCustomer(c *fiber.Ctx) error {
 	type request struct {
-		FistName string `json:"first_name"`
-		LastName string `json:"last_name"`
-		Email    string `json:"email"`
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		Email     string `json:"email"`
 	}
 
 	type response struct {
