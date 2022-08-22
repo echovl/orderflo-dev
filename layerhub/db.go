@@ -8,20 +8,23 @@ type Filter struct {
 	Limit  int
 	Offset int
 
-	ID                 string
-	ShortID            string
-	RegularOrShortID   string
-	CustomerID         string
-	PublicOrCustomerID string
-	CompanyID          string
-	UserID             string
-	Email              string
-	ApiToken           string
-	PostscriptName     string
-	FontEnabled        *bool
-	IncludePublicDocs  bool
-	Visibility         FrameVisibility
-	UserSource         UserSource
+	ID               string
+	ShortID          string
+	RegularOrShortID string
+	CustomerID       string
+	CompanyID        string
+	UserID           string
+	Email            string
+	ApiToken         string
+	PostscriptName   string
+	EnabledFonts     *bool
+	Public           *bool
+	UsedInTemplate   *bool
+	UserSource       UserSource
+
+	OptionalCustomerID string
+	OptionalCompanyID  string
+	OptionalUserID     string
 }
 
 func (f *Filter) WithoutPagination() *Filter {

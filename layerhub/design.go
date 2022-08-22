@@ -20,9 +20,11 @@ type Template struct {
 	Type        string    `json:"type" bson:"type" db:"type"`
 	Name        string    `json:"name" bson:"name" db:"name"`
 	Description string    `json:"description" bson:"description"`
+	Public      bool      `json:"public" db:"public"`
 	Published   bool      `json:"published" bson:"published" db:"published"`
 	Tags        []string  `json:"tags" bson:"tags"`
 	Colors      []string  `json:"colors" bson:"colors"`
+	CustomerID  string    `json:"customer_id" db:"customer_id"`
 	CompanyID   string    `json:"company_id" db:"company_id"`
 	UserID      string    `json:"user_id" db:"user_id"`
 	CreatedAt   time.Time `json:"created_at" bson:"created_at" db:"created_at"`
@@ -259,13 +261,6 @@ type Metadata struct {
 	Orientation string `json:"orientation" db:"orientation"`
 }
 
-type FrameVisibility string
-
-const (
-	FramePublic  FrameVisibility = "public"
-	FramePrivate FrameVisibility = "private"
-)
-
 type FrameUnit string
 
 const (
@@ -275,13 +270,17 @@ const (
 )
 
 type Frame struct {
-	ID         string          `json:"id,omitempty" db:"id"`
-	Name       string          `json:"name,omitempty" db:"name"`
-	Visibility FrameVisibility `json:"visibility,omitempty" db:"visibility"`
-	Width      float64         `json:"width" db:"width"`
-	Height     float64         `json:"height" db:"height"`
-	Unit       FrameUnit       `json:"unit" db:"unit"`
-	Preview    string          `json:"preview" db:"preview"`
+	ID             string    `json:"id,omitempty" db:"id"`
+	Name           string    `json:"name,omitempty" db:"name"`
+	Width          float64   `json:"width" db:"width"`
+	Height         float64   `json:"height" db:"height"`
+	UsedInTemplate bool      `json:"used_in_template" db:"used_in_template"`
+	Unit           FrameUnit `json:"unit" db:"unit"`
+	Preview        string    `json:"preview" db:"preview"`
+	Public         bool      `json:"public" db:"public"`
+	CustomerID     string    `json:"customer_id,omitempty" db:"customer_id"`
+	CompanyID      string    `json:"company_id,omitempty" db:"company_id"`
+	UserID         string    `json:"user_id,omitempty" db:"user_id"`
 }
 
 func NewFrame() *Frame {

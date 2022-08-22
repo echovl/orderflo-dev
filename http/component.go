@@ -4,17 +4,18 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/echovl/orderflo-dev/assign"
 	"github.com/echovl/orderflo-dev/errors"
 	"github.com/echovl/orderflo-dev/layerhub"
+	"github.com/gofiber/fiber/v2"
 )
 
 func (s *Server) handleCreateComponent(c *fiber.Ctx) error {
 	type request struct {
-		Name     string            `json:"name"`
-		Layers   []*layerhub.Layer `json:"layers" validate:"required"`
-		Metadata map[string]any    `json:"metadata"`
+		Name       string            `json:"name"`
+		Layers     []*layerhub.Layer `json:"layers" validate:"required"`
+		Metadata   map[string]any    `json:"metadata"`
+		CustomerID string            `json:"customer_id"`
 	}
 
 	type response struct {
@@ -27,14 +28,20 @@ func (s *Server) handleCreateComponent(c *fiber.Ctx) error {
 	}
 
 	session, _ := s.getSession(c)
-
 	component := layerhub.NewComponent()
 	component.Name = req.Name
 	component.Layers = req.Layers
 	component.Metadata = req.Metadata
+	component.UserID = session.UserID
 
-	if !session.IsAdmin() {
-		component.UserID = session.UserID
+	if !session.IsWeb {
+		if req.CustomerID == "" {
+			return errors.E(errors.KindValidation, "'customer_id' with value '' failed the 'required' validation")
+		}
+		component.CustomerID = req.CustomerID
+		component.CompanyID = session.CompanyID
+	} else {
+		component.Public = true
 	}
 
 	err := s.Core.PutComponent(c.Context(), component)
@@ -99,8 +106,14 @@ func (s *Server) handleGetComponent(c *fiber.Ctx) error {
 		return err
 	}
 
-	if !session.IsAdmin() && component.UserID != session.UserID {
-		return errors.NotFound(fmt.Sprintf("component '%s' not found", id))
+	if !component.Public {
+		if component.UserID != session.UserID {
+			return errors.NotFound(fmt.Sprintf("component '%s' not found", id))
+		}
+
+		if !session.IsWeb && component.CompanyID != session.CompanyID {
+			return errors.NotFound(fmt.Sprintf("component '%s' not found", id))
+		}
 	}
 
 	return c.JSON(response{component})

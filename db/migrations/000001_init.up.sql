@@ -85,11 +85,15 @@ CREATE TABLE
   IF NOT EXISTS frames (
     id VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
-    visibility VARCHAR(255) NOT NULL,
+    public BOOLEAN NOT NULL,
     width FLOAT NOT NULL,
     height FLOAT NOT NULL,
     unit VARCHAR(10) NOT NULL,
     preview VARCHAR(1000) NOT NULL,
+    used_in_template BOOLEAN NOT NULL,
+    customer_id VARCHAR(50) NOT NULL,
+    company_id VARCHAR(50) NOT NULL,
+    user_id VARCHAR(50) NOT NULL,
     PRIMARY KEY (id)
   );
 
@@ -130,6 +134,7 @@ CREATE TABLE
     type VARCHAR(255) NOT NULL,
     published BOOL NOT NULL,
     preview VARCHAR(255) NOT NULL,
+    customer_id VARCHAR(255) NOT NULL,
     company_id VARCHAR(255) NOT NULL,
     user_id VARCHAR(255) NOT NULL,
     created_at DATETIME NOT NULL,

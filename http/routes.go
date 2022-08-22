@@ -36,6 +36,9 @@ func (s *Server) initRoutes() {
 	api.Post("/fonts/enable", s.requireCompanySession, s.handleEnableFonts)
 	api.Post("/fonts/disable", s.requireCompanySession, s.handleDisableFonts)
 
+	api.Get("/frames", s.requireUserSession, s.handleListFrames)
+	api.Get("/frames/:id", s.requireUserSession, s.handleGetFrame)
+
 	web.Post("/auth/signup", s.handleSignUp)
 	web.Post("/auth/signin", s.handleSignIn)
 	web.Post("/auth/signout", s.requireUserSession, s.handleSignOut)
@@ -61,9 +64,9 @@ func (s *Server) initRoutes() {
 
 	web.Get("/frames", s.requireUserSession, s.handleListFrames)
 	web.Get("/frames/:id", s.requireUserSession, s.handleGetFrame)
-	web.Post("/frames", s.requireUserSession, s.requireAdmin, s.handleCreateFrame)
-	web.Put("/frames/:id", s.requireUserSession, s.requireAdmin, s.handleUpdateFrame)
-	web.Delete("/frames/:id", s.requireUserSession, s.requireAdmin, s.handleDeleteFrame)
+	web.Post("/frames", s.requireUserSession, s.handleCreateFrame)
+	web.Put("/frames/:id", s.requireUserSession, s.handleUpdateFrame)
+	web.Delete("/frames/:id", s.requireUserSession, s.handleDeleteFrame)
 
 	web.Get("/templates", s.requireUserSession, s.handleListTemplate)
 	web.Get("/templates/:id", s.requireUserSession, s.handleGetTemplate)

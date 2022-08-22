@@ -11,7 +11,8 @@ import (
 
 func (s *Server) handleEnableFonts(c *fiber.Ctx) error {
 	type request struct {
-		FontIDs []string `json:"font_ids"`
+		FontIDs    []string `json:"font_ids"`
+		CustomerID string   `json:"customer_id" validate:"required"`
 	}
 
 	type response struct {
@@ -23,9 +24,7 @@ func (s *Server) handleEnableFonts(c *fiber.Ctx) error {
 		return errors.E(errors.KindValidation, err)
 	}
 
-	session, _ := s.getSession(c)
-
-	err := s.Core.EnableFonts(c.Context(), session.UserID, req.FontIDs)
+	err := s.Core.EnableFonts(c.Context(), req.CustomerID, req.FontIDs)
 	if err != nil {
 		return err
 	}
@@ -35,7 +34,8 @@ func (s *Server) handleEnableFonts(c *fiber.Ctx) error {
 
 func (s *Server) handleDisableFonts(c *fiber.Ctx) error {
 	type request struct {
-		FontIDs []string `json:"font_ids"`
+		FontIDs    []string `json:"font_ids"`
+		CustomerID string   `json:"customer_id" validate:"required"`
 	}
 
 	type response struct {
@@ -47,9 +47,7 @@ func (s *Server) handleDisableFonts(c *fiber.Ctx) error {
 		return errors.E(errors.KindValidation, err)
 	}
 
-	session, _ := s.getSession(c)
-
-	err := s.Core.DisableFonts(c.Context(), session.UserID, req.FontIDs)
+	err := s.Core.DisableFonts(c.Context(), req.CustomerID, req.FontIDs)
 	if err != nil {
 		return err
 	}
@@ -65,6 +63,7 @@ func (s *Server) handleCreateFont(c *fiber.Ctx) error {
 		URL        string `json:"url"`
 		Category   string `json:"category"`
 		CustomerID string `json:"customer_id"`
+		CompanyID  string `json:"company_id"`
 	}
 
 	type response struct {
@@ -88,12 +87,12 @@ func (s *Server) handleCreateFont(c *fiber.Ctx) error {
 
 	if !session.IsWeb {
 		if req.CustomerID == "" {
-			return errors.E(errors.KindValidation, "'customer_id' with value '' failed the 'required' validation")
+			return errors.Validation("'customer_id' with value '' failed the 'required' validation")
 		}
 		font.CustomerID = req.CustomerID
 		font.CompanyID = session.CompanyID
 	} else {
-		font.Public = true
+		font.CompanyID = req.CompanyID
 	}
 
 	err := s.Core.PutFont(c.Context(), font)
@@ -122,20 +121,18 @@ func (s *Server) handleUpdateFont(c *fiber.Ctx) error {
 	}
 
 	session, _ := s.getSession(c)
-
 	id := string(c.Params("id"))
-
 	font, err := s.Core.GetFont(c.Context(), id)
 	if err != nil {
 		return err
 	}
 
 	if font.UserID != session.UserID {
-		return errors.NotFound(fmt.Sprintf("font '%s' not found", id))
+		return errors.Authorization(font.ID)
 	}
 
 	if !session.IsWeb && font.CompanyID != session.CompanyID {
-		return errors.NotFound(fmt.Sprintf("font '%s' not found", id))
+		return errors.Authorization(font.ID)
 	}
 
 	if err := assign.Structs(font, req); err != nil {
@@ -166,11 +163,11 @@ func (s *Server) handleGetFont(c *fiber.Ctx) error {
 
 	if !font.Public {
 		if font.UserID != session.UserID {
-			return errors.NotFound(fmt.Sprintf("font '%s' not found", id))
+			return errors.Authorization(font.ID)
 		}
 
-		if !session.IsWeb && font.CompanyID != session.CompanyID {
-			return errors.NotFound(fmt.Sprintf("font '%s' not found", id))
+		if !session.IsWeb && font.CompanyID != "" && font.CompanyID != session.CompanyID {
+			return errors.Authorization(font.ID)
 		}
 	}
 
@@ -198,14 +195,13 @@ func (s *Server) handleListFonts(c *fiber.Ctx) error {
 
 	session, _ := s.getSession(c)
 	fonts, count, err := s.Core.FindFonts(c.Context(), &layerhub.Filter{
-		CustomerID:        req.CustomerID,
-		CompanyID:         session.CompanyID,
-		UserID:            session.UserID,
-		Limit:             req.Limit,
-		Offset:            req.Offset,
-		PostscriptName:    req.PostscriptName,
-		FontEnabled:       req.Enabled,
-		IncludePublicDocs: true,
+		OptionalCustomerID: req.CustomerID,
+		OptionalCompanyID:  session.CompanyID,
+		OptionalUserID:     session.UserID,
+		PostscriptName:     req.PostscriptName,
+		EnabledFonts:       req.Enabled,
+		Limit:              req.Limit,
+		Offset:             req.Offset,
 	})
 	if err != nil {
 		return err
@@ -228,11 +224,11 @@ func (s *Server) handleDeleteFont(c *fiber.Ctx) error {
 	}
 
 	if font.UserID != session.UserID {
-		return errors.NotFound(fmt.Sprintf("font '%s' not found", id))
+		return errors.Authorization(font.ID)
 	}
 
 	if !session.IsWeb && font.CompanyID != session.CompanyID {
-		return errors.NotFound(fmt.Sprintf("font '%s' not found", id))
+		return errors.Authorization(font.ID)
 	}
 
 	err = s.Core.DeleteFont(c.Context(), id)

@@ -334,13 +334,13 @@ func (s *MySQLDB) FindFonts(ctx context.Context, filter *layerhub.Filter) ([]lay
 	where, args := filterToQuery("fonts", filter)
 	fonts := []layerhub.Font{}
 
-	if filter != nil && filter.FontEnabled != nil {
-		if *filter.FontEnabled {
+	if filter != nil && filter.EnabledFonts != nil {
+		if *filter.EnabledFonts {
 			query += "INNER JOIN enabled_fonts ON fonts.id = enabled_fonts.font_id AND enabled_fonts.customer_id = ? "
 		} else {
 			query += "LEFT JOIN enabled_fonts ON fonts.id = enabled_fonts.font_id AND enabled_fonts.customer_id = ? "
 		}
-		args = append([]any{filter.UserID}, args...)
+		args = append([]any{filter.OptionalCustomerID}, args...)
 	}
 
 	err := s.db.SelectContext(ctx, &fonts, query+where, args...)
@@ -356,13 +356,13 @@ func (s *MySQLDB) CountFonts(ctx context.Context, filter *layerhub.Filter) (int,
 	where, args := filterToQuery("fonts", filter)
 	count := []CountRow{}
 
-	if filter != nil && filter.FontEnabled != nil {
-		if *filter.FontEnabled {
+	if filter != nil && filter.EnabledFonts != nil {
+		if *filter.EnabledFonts {
 			query += "INNER JOIN enabled_fonts ON fonts.id = enabled_fonts.font_id AND enabled_fonts.customer_id = ? "
 		} else {
 			query += "LEFT JOIN enabled_fonts ON fonts.id = enabled_fonts.font_id AND enabled_fonts.customer_id = ? "
 		}
-		args = append([]any{filter.UserID}, args...)
+		args = append([]any{filter.OptionalCustomerID}, args...)
 	}
 
 	err := s.db.SelectContext(ctx, &count, query+where, args...)
@@ -444,9 +444,12 @@ func (s *MySQLDB) PutTemplate(ctx context.Context, template *layerhub.Template) 
         type,
         published,
         preview,
+        customer_id,
+        company_id,
+        user_id,
         created_at,
         updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
         short_id=VALUES(short_id),
         name=VALUES(name),
         type=VALUES(type),
@@ -464,6 +467,9 @@ func (s *MySQLDB) PutTemplate(ctx context.Context, template *layerhub.Template) 
 		template.Type,
 		template.Published,
 		template.Preview,
+		template.CustomerID,
+		template.CompanyID,
+		template.UserID,
 		template.CreatedAt,
 		template.UpdatedAt,
 	)
@@ -472,11 +478,11 @@ func (s *MySQLDB) PutTemplate(ctx context.Context, template *layerhub.Template) 
 	}
 
 	err = s.putFrame(ctx, tx, &layerhub.Frame{
-		ID:         template.ID,
-		Name:       template.Frame.Name,
-		Width:      template.Frame.Width,
-		Height:     template.Frame.Height,
-		Visibility: layerhub.FramePrivate,
+		ID:             template.ID,
+		Name:           template.Frame.Name,
+		Width:          template.Frame.Width,
+		Height:         template.Frame.Height,
+		UsedInTemplate: true,
 	})
 	if err != nil {
 		return errors.E(errors.KindUnexpected, err)
@@ -601,14 +607,18 @@ func (s *MySQLDB) putFrame(ctx context.Context, ext ExtContext, frame *layerhub.
 	query := `INSERT INTO frames (
         id,
         name,
-        visibility,
+        public,
         width,
         height,
         unit,
-        preview
-    ) VALUES (?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
+        preview,
+        used_in_template,
+        customer_id,
+        company_id,
+        user_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
         name=VALUES(name),
-        visibility=VALUES(visibility),
+        public=VALUES(public),
         width=VALUES(width),
         height=VALUES(height),
         unit=VALUES(unit),
@@ -620,11 +630,15 @@ func (s *MySQLDB) putFrame(ctx context.Context, ext ExtContext, frame *layerhub.
 		query,
 		frame.ID,
 		frame.Name,
-		frame.Visibility,
+		frame.Public,
 		frame.Width,
 		frame.Height,
 		frame.Unit,
 		frame.Preview,
+		frame.UsedInTemplate,
+		frame.CustomerID,
+		frame.CompanyID,
+		frame.UserID,
 	)
 	if err != nil {
 		return errors.E(errors.KindUnexpected, err)
@@ -719,11 +733,11 @@ func (s *MySQLDB) PutProject(ctx context.Context, project *layerhub.Project) err
 	}
 
 	err = s.putFrame(ctx, tx, &layerhub.Frame{
-		ID:         project.ID,
-		Name:       project.Frame.Name,
-		Width:      project.Frame.Width,
-		Height:     project.Frame.Height,
-		Visibility: layerhub.FramePrivate,
+		ID:             project.ID,
+		Name:           project.Frame.Name,
+		Width:          project.Frame.Width,
+		Height:         project.Frame.Height,
+		UsedInTemplate: true,
 	})
 	if err != nil {
 		return errors.E(errors.KindUnexpected, err)
@@ -791,10 +805,13 @@ func (s *MySQLDB) PutComponent(ctx context.Context, component *layerhub.Componen
         id,
         name,
         preview,
+        public,
+        customer_id,
+        company_id,
         user_id,
         created_at,
         updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
         name=VALUES(name),
         preview=VALUES(preview),
         updated_at=VALUES(updated_at)
@@ -806,6 +823,9 @@ func (s *MySQLDB) PutComponent(ctx context.Context, component *layerhub.Componen
 		component.ID,
 		component.Name,
 		component.Preview,
+		component.Public,
+		component.CustomerID,
+		component.CompanyID,
 		component.UserID,
 		component.CreatedAt,
 		component.UpdatedAt,
@@ -1313,24 +1333,36 @@ func filterToQuery(table string, filter *layerhub.Filter) (string, []any) {
 			conds = append(conds, "users.source = ?")
 			args = append(args, filter.UserSource)
 		}
-		if filter.Visibility != "" {
-			conds = append(conds, fmt.Sprintf("%s.visibility = ?", table))
-			args = append(args, filter.Visibility)
+		if filter.Public != nil {
+			conds = append(conds, fmt.Sprintf("%s.public = ?", table))
+			args = append(args, *filter.Public)
+		}
+		if filter.UsedInTemplate != nil {
+			conds = append(conds, fmt.Sprintf("%s.used_in_template = ?", table))
+			args = append(args, *filter.UsedInTemplate)
 		}
 		if filter.ApiToken != "" {
 			conds = append(conds, fmt.Sprintf("%s.api_token = ?", table))
 			args = append(args, filter.ApiToken)
 		}
-		if filter.FontEnabled != nil && *filter.FontEnabled == false {
+		if filter.EnabledFonts != nil && *filter.EnabledFonts == false {
 			conds = append(conds, "enabled_fonts.id IS NULL")
+		}
+		if filter.OptionalUserID != "" {
+			conds = append(conds, fmt.Sprintf("(%s.user_id = ? OR %s.user_id = '')", table, table))
+			args = append(args, filter.OptionalUserID)
+		}
+		if filter.OptionalCustomerID != "" {
+			conds = append(conds, fmt.Sprintf("(%s.customer_id = ? OR %s.customer_id = '')", table, table))
+			args = append(args, filter.OptionalCustomerID)
+		}
+		if filter.OptionalCompanyID != "" {
+			conds = append(conds, fmt.Sprintf("(%s.company_id = ? OR %s.company_id = '')", table, table))
+			args = append(args, filter.OptionalCompanyID)
 		}
 
 		if len(conds) != 0 {
 			query += "WHERE " + strings.Join(conds, " AND ") + " "
-		}
-
-		if filter.IncludePublicDocs {
-			query += "OR public = true "
 		}
 
 		if filter.Limit != 0 {

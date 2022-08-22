@@ -12,6 +12,7 @@ const (
 	KindValidation
 	KindNotFound
 	KindAuthentication
+	KindAuthorization
 )
 
 type Error struct {
@@ -47,6 +48,11 @@ func NotFound(args ...any) error {
 
 func Authentication(args ...any) error {
 	args = append(args, KindAuthentication)
+	return E(args...)
+}
+
+func Authorization(args ...any) error {
+	args = append(args, KindAuthorization)
 	return E(args...)
 }
 

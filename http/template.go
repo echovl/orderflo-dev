@@ -4,16 +4,18 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/echovl/orderflo-dev/assign"
 	"github.com/echovl/orderflo-dev/errors"
 	"github.com/echovl/orderflo-dev/layerhub"
+	"github.com/gofiber/fiber/v2"
 )
 
 func (s *Server) handleListTemplate(c *fiber.Ctx) error {
 	type request struct {
-		Limit  int `query:"limit"`
-		Offset int `query:"offset"`
+		CustomerID string `query:"customer_id"`
+		CompanyID  string `query:"company_id"`
+		Limit      int    `query:"limit"`
+		Offset     int    `query:"offset"`
 	}
 
 	type response struct {
@@ -26,9 +28,25 @@ func (s *Server) handleListTemplate(c *fiber.Ctx) error {
 		return errors.E(errors.KindValidation, err)
 	}
 
+	session, _ := s.getSession(c)
+	filter := &layerhub.Filter{
+		OptionalCustomerID: req.CustomerID,
+		OptionalCompanyID:  session.CompanyID,
+		OptionalUserID:     session.UserID,
+		Limit:              req.Limit,
+		Offset:             req.Offset,
+	}
+
+	if session.IsWeb {
+		filter.OptionalCompanyID = req.CompanyID
+	}
+
 	templates, count, err := s.Core.FindTemplates(c.Context(), &layerhub.Filter{
-		Limit:  req.Limit,
-		Offset: req.Offset,
+		OptionalCustomerID: req.CustomerID,
+		OptionalCompanyID:  session.CompanyID,
+		OptionalUserID:     session.UserID,
+		Limit:              req.Limit,
+		Offset:             req.Offset,
 	})
 	if err != nil {
 		return err
@@ -42,11 +60,21 @@ func (s *Server) handleGetTemplate(c *fiber.Ctx) error {
 		Template *layerhub.Template `json:"template"`
 	}
 
+	session, _ := s.getSession(c)
 	id := c.Params("id")
-
 	template, err := s.Core.GetTemplate(c.Context(), id)
 	if err != nil {
 		return err
+	}
+
+	if !template.Public {
+		if template.UserID != session.UserID {
+			return errors.Authorization(template.ID)
+		}
+
+		if !session.IsWeb && template.CompanyID != "" && template.CompanyID != session.CompanyID {
+			return errors.Authorization(template.ID)
+		}
 	}
 
 	return c.JSON(response{template})
@@ -92,6 +120,8 @@ func (s *Server) handleCreateTemplate(c *fiber.Ctx) error {
 		Colors      []string          `json:"colors"`
 		Frame       layerhub.Frame    `json:"frame" validate:"required"`
 		Metadata    layerhub.Metadata `json:"metadata"`
+		CustomerID  string            `json:"customer_id"`
+		CompanyID   string            `json:"company_id"`
 	}
 
 	type response struct {
@@ -103,6 +133,7 @@ func (s *Server) handleCreateTemplate(c *fiber.Ctx) error {
 		return errors.E(errors.KindValidation, err)
 	}
 
+	session, _ := s.getSession(c)
 	template := layerhub.NewTemplate()
 	template.Name = req.Name
 	template.Description = req.Description
@@ -111,6 +142,17 @@ func (s *Server) handleCreateTemplate(c *fiber.Ctx) error {
 	template.Frame = req.Frame
 	template.Metadata = req.Metadata
 	template.Layers = req.Layers
+	template.UserID = session.UserID
+
+	if !session.IsWeb {
+		if req.CustomerID == "" {
+			return errors.Validation("'request.customer_id' with value '' failed the 'required' validation")
+		}
+		template.CustomerID = req.CustomerID
+		template.CompanyID = session.CompanyID
+	} else {
+		template.CompanyID = req.CompanyID
+	}
 
 	if req.ID != "" {
 		template.ID = req.ID
@@ -144,11 +186,19 @@ func (s *Server) handleUpdateTemplate(c *fiber.Ctx) error {
 		return errors.E(errors.KindValidation, err)
 	}
 
+	session, _ := s.getSession(c)
 	id := c.Params("id")
-
 	template, err := s.Core.GetTemplate(c.Context(), id)
 	if err != nil {
 		return err
+	}
+
+	if template.UserID != session.UserID {
+		return errors.Authorization(template.ID)
+	}
+
+	if !session.IsWeb && template.CompanyID != "" && template.CompanyID != session.CompanyID {
+		return errors.Authorization(template.ID)
 	}
 
 	if err := assign.Structs(template, req); err != nil {
@@ -169,11 +219,19 @@ func (s *Server) handleDeleteTemplate(c *fiber.Ctx) error {
 		Template *layerhub.Template `json:"template"`
 	}
 
+	session, _ := s.getSession(c)
 	id := c.Params("id")
-
 	template, err := s.Core.GetTemplate(c.Context(), id)
 	if err != nil {
 		return err
+	}
+
+	if template.UserID != session.UserID {
+		return errors.Authorization(template.ID)
+	}
+
+	if !session.IsWeb && template.CompanyID != "" && template.CompanyID != session.CompanyID {
+		return errors.Authorization(template.ID)
 	}
 
 	err = s.Core.DeleteTemplate(c.Context(), id)

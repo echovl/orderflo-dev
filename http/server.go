@@ -112,6 +112,9 @@ func (s *Server) errorHandler(c *fiber.Ctx, err error) error {
 	case errors.Is(err, errors.KindAuthentication):
 		code = http.StatusUnauthorized
 		message = "Authentication required"
+	case errors.Is(err, errors.KindAuthorization):
+		code = http.StatusUnauthorized
+		message = "You are not authorized to perform this action"
 	default:
 		// Unexpected error
 		if e, ok := err.(*fiber.Error); ok {
