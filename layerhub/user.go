@@ -13,19 +13,12 @@ const (
 	appTokenLength = 60
 )
 
-type UserKind string
+type UserRole string
 
 const (
-	UserKindAdmin   UserKind = "admin"
-	UserKindCompany UserKind = "company"
-)
-
-type UserSource string
-
-const (
-	UserSourceEmail  UserSource = "email"
-	UserSourceGithub UserSource = "github"
-	UserSourceGoogle UserSource = "google"
+	UserRoleOwner    UserRole = "owner"
+	UserRoleAdmin    UserRole = "admin"
+	UserRoleDesigner UserRole = "designer"
 )
 
 type User struct {
@@ -39,8 +32,9 @@ type User struct {
 	PhoneVerified bool       `json:"phone_verified" db:"phone_verified"`
 	PasswordHash  string     `json:"password_hash" db:"password_hash"`
 	PlanID        string     `json:"plan_id" db:"plan_id"`
-	Kind          UserKind   `json:"kind" db:"kind"`
-	Source        UserSource `json:"source" db:"source"`
+	Role          UserRole   `json:"role" db:"role"`
+	Source        AuthSource `json:"source" db:"source"`
+	CompanyID     string     `json:"company_id" db:"company_id"`
 	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at" db:"updated_at"`
 }
@@ -49,8 +43,8 @@ func NewUser() *User {
 	now := Now()
 	return &User{
 		ID:        UniqueID("user"),
-		Kind:      UserKindCompany,
-		Source:    UserSourceEmail,
+		Role:      UserRoleOwner,
+		Source:    AuthSourceEmail,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}

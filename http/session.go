@@ -15,15 +15,10 @@ const (
 )
 
 type Session struct {
-	UserID    string            `json:"user_id"`
-	UserKind  layerhub.UserKind `json:"user_kind"`
-	CompanyID string            `json:"company_id"`
-	CSRFToken string            `json:"csfr_token"`
-	IsWeb     bool              `json:"is_web"`
-}
-
-func (s *Session) IsAdmin() bool {
-	return s.UserKind == layerhub.UserKindAdmin
+	User      *layerhub.User     `json:"user"`
+	Company   *layerhub.Company  `json:"company"`
+	Customer  *layerhub.Customer `json:"customer"`
+	CSRFToken string             `json:"csfr_token"`
 }
 
 func (s *Server) getSession(c *fiber.Ctx) (*Session, error) {
@@ -52,14 +47,38 @@ func (s *Server) getSession(c *fiber.Ctx) (*Session, error) {
 
 // initSession creates the user session and sets the session cookie.
 // Returns the csrf token to include in the following requests
-func (s *Server) initSession(c *fiber.Ctx, user *layerhub.User) (string, error) {
+func (s *Server) initUserSession(c *fiber.Ctx, user *layerhub.User, company *layerhub.Company) (string, error) {
 	sessID := layerhub.UniqueID("sess")
-
 	sess := &Session{
-		UserID:    user.ID,
-		UserKind:  user.Kind,
+		User:      user,
+		Company:   company,
 		CSRFToken: layerhub.RandomString(csrfTokenLength),
-		IsWeb:     true,
+	}
+
+	sessJSON, err := json.Marshal(sess)
+	if err != nil {
+		return "", err
+	}
+
+	err = s.sessionDB.Set(c.Context(), sessID, sessJSON, sessionMaxDuration)
+	if err != nil {
+		return "", err
+	}
+
+	c.Cookie(&fiber.Cookie{
+		Name:  sessionCookieName,
+		Value: sessID,
+	})
+
+	return sess.CSRFToken, nil
+}
+
+func (s *Server) initCustomerSession(c *fiber.Ctx, customer *layerhub.Customer, company *layerhub.Company) (string, error) {
+	sessID := layerhub.UniqueID("sess")
+	sess := &Session{
+		Company:   company,
+		Customer:  customer,
+		CSRFToken: layerhub.RandomString(csrfTokenLength),
 	}
 
 	sessJSON, err := json.Marshal(sess)

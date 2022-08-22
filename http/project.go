@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/echovl/orderflo-dev/assign"
@@ -28,13 +27,18 @@ func (s *Server) handleListProject(c *fiber.Ctx) error {
 	}
 
 	session, _ := s.getSession(c)
-	projects, count, err := s.Core.FindProjects(c.Context(), &layerhub.Filter{
+	filter := &layerhub.Filter{
 		CustomerID: req.CustomerID,
-		CompanyID:  session.CompanyID,
-		UserID:     session.UserID,
+		CompanyID:  session.Company.ID,
 		Limit:      req.Limit,
 		Offset:     req.Offset,
-	})
+	}
+
+	if session.Customer != nil {
+		filter.CustomerID = session.Customer.ID
+	}
+
+	projects, count, err := s.Core.FindProjects(c.Context(), filter)
 	if err != nil {
 		return err
 	}
@@ -55,8 +59,12 @@ func (s *Server) handleGetProject(c *fiber.Ctx) error {
 		return err
 	}
 
-	if project.UserID != session.UserID || project.CompanyID != session.CompanyID {
-		return errors.NotFound(fmt.Sprintf("project '%s' not found", id))
+	if project.CompanyID != session.Company.ID {
+		return errors.Authorization(project.ID)
+	}
+
+	if session.Customer != nil && project.CustomerID != session.Customer.ID {
+		return errors.Authorization(project.ID)
 	}
 
 	return c.JSON(response{project})
@@ -69,7 +77,6 @@ func (s *Server) handleCreateProject(c *fiber.Ctx) error {
 		Description string            `json:"description"`
 		Layers      []*layerhub.Layer `json:"layers" validate:"required"`
 		Frame       layerhub.Frame    `json:"frame" validate:"required"`
-		CustomerID  string            `json:"customer_id" validate:"required"`
 	}
 
 	type response struct {
@@ -88,9 +95,12 @@ func (s *Server) handleCreateProject(c *fiber.Ctx) error {
 	project.Description = req.Description
 	project.Frame = req.Frame
 	project.Layers = req.Layers
-	project.CustomerID = req.CustomerID
-	project.CompanyID = session.CompanyID
-	project.UserID = session.UserID
+	project.CompanyID = session.Company.ID
+
+	if session.Customer != nil {
+		project.CustomerID = session.Customer.ID
+	}
+
 	if req.ID != "" {
 		project.ID = req.ID
 	}
@@ -122,14 +132,17 @@ func (s *Server) handleUpdateProject(c *fiber.Ctx) error {
 
 	session, _ := s.getSession(c)
 	id := string(c.Params("id"))
-
 	project, err := s.Core.GetProject(c.Context(), id)
 	if err != nil {
 		return err
 	}
 
-	if project.UserID != session.UserID || project.CompanyID != session.CompanyID {
-		return errors.NotFound(fmt.Sprintf("project '%s' not found", id))
+	if project.CompanyID != session.Company.ID {
+		return errors.Authorization(project.ID)
+	}
+
+	if session.Customer != nil && project.CustomerID != session.Customer.ID {
+		return errors.Authorization(project.ID)
 	}
 
 	if err := assign.Structs(project, req); err != nil {
@@ -152,14 +165,17 @@ func (s *Server) handleDeleteProject(c *fiber.Ctx) error {
 
 	session, _ := s.getSession(c)
 	id := string(c.Params("id"))
-
 	project, err := s.Core.GetProject(c.Context(), id)
 	if err != nil {
 		return err
 	}
 
-	if project.UserID != session.UserID || project.CompanyID != session.CompanyID {
-		return errors.NotFound(fmt.Sprintf("project '%s' not found", id))
+	if project.CompanyID != session.Company.ID {
+		return errors.Authorization(project.ID)
+	}
+
+	if session.Customer != nil && project.CustomerID != session.Customer.ID {
+		return errors.Authorization(project.ID)
 	}
 
 	err = s.Core.DeleteProject(c.Context(), id)

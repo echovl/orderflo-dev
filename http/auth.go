@@ -2,7 +2,6 @@ package http
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/echovl/orderflo-dev/assign"
@@ -38,47 +37,40 @@ func (s *Server) requireUserSession(c *fiber.Ctx) error {
 	default:
 	}
 
+	if session.User == nil || session.Company == nil {
+		return errors.Authentication("mismatched csrf tokens")
+	}
+
 	c.Locals("session", session)
 
 	return c.Next()
 }
 
-func (s *Server) requireCompanySession(c *fiber.Ctx) error {
-	authHeader := c.GetReqHeaders()["Authorization"]
-	if authHeader == "" {
-		return errors.Authentication("empty authorization header")
-	}
-
-	token := strings.ReplaceAll(authHeader, "Bearer ", "")
-
-	companies, _, err := s.Core.FindCompanies(c.Context(), &layerhub.Filter{ApiToken: token, Limit: 1})
+func (s *Server) requireCustomerSession(c *fiber.Ctx) error {
+	session, err := s.getSession(c)
 	if err != nil {
-		return errors.Authentication(err)
-	}
-	if len(companies) == 0 {
-		return errors.Authentication("company not found")
+		return err
 	}
 
-	user, err := s.Core.GetUser(c.Context(), companies[0].UserID)
-	if err != nil {
-		return errors.Authentication(err)
+	switch c.Method() {
+	case http.MethodPost, http.MethodPut, http.MethodPatch:
+		headers := c.GetReqHeaders()
+		csrfToken, ok := headers[csrfHeaderName]
+		if !ok {
+			return errors.Authentication("missing csrf token")
+		}
+
+		if csrfToken != session.CSRFToken {
+			return errors.Authentication("mismatched csrf tokens")
+		}
+	default:
 	}
 
-	c.Locals("session", &Session{
-		UserID:    user.ID,
-		UserKind:  user.Kind,
-		CompanyID: companies[0].ID,
-		IsWeb:     false,
-	})
-
-	return c.Next()
-}
-
-func (s *Server) requireAdmin(c *fiber.Ctx) error {
-	session, _ := s.getSession(c)
-	if !session.IsAdmin() {
-		return fiber.NewError(401, "Unauthorized!")
+	if session.Customer == nil || session.Company == nil {
+		return errors.Authentication("mismatched csrf tokens")
 	}
+
+	c.Locals("session", session)
 
 	return c.Next()
 }
@@ -99,14 +91,15 @@ func (s *Server) handleGetCSRFToken(c *fiber.Ctx) error {
 	return c.JSON(response{sess.CSRFToken})
 }
 
-func (s *Server) handleSignUp(c *fiber.Ctx) error {
+func (s *Server) handleUserSignUp(c *fiber.Ctx) error {
 	type request struct {
-		FirstName string `json:"first_name" validate:"max=20"`
-		LastName  string `json:"last_name" validate:"max=20"`
-		Email     string `json:"email" validate:"email"`
-		Phone     string `json:"phone"`
-		Avatar    string `json:"avatar"`
-		Password  string `json:"password" validate:"required,min=8"`
+		FirstName   string `json:"first_name" validate:"max=20"`
+		LastName    string `json:"last_name" validate:"max=20"`
+		Email       string `json:"email" validate:"email"`
+		Phone       string `json:"phone"`
+		Avatar      string `json:"avatar"`
+		CompanyName string `json:"company_name"`
+		Password    string `json:"password" validate:"required,min=8"`
 	}
 
 	type response struct {
@@ -124,8 +117,10 @@ func (s *Server) handleSignUp(c *fiber.Ctx) error {
 	user.Email = req.Email
 	user.Phone = req.Phone
 	user.Avatar = req.Avatar
+	company := layerhub.NewCompany()
+	company.Name = req.CompanyName
 
-	err := s.Core.RegisterUser(c.Context(), user, req.Password)
+	err := s.Core.RegisterUser(c.Context(), user, company, req.Password)
 	if err != nil {
 		return err
 	}
@@ -137,7 +132,39 @@ func (s *Server) handleSignUp(c *fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
-func (s *Server) handleSignIn(c *fiber.Ctx) error {
+func (s *Server) handleCustomerSignUp(c *fiber.Ctx) error {
+	type request struct {
+		FirstName string `json:"first_name" validate:"max=20"`
+		LastName  string `json:"last_name" validate:"max=20"`
+		Email     string `json:"email" validate:"email"`
+		Password  string `json:"password" validate:"required,min=8"`
+		CompanyID string `json:"company_id" validate:"required"`
+	}
+
+	type response struct {
+		Customer *layerhub.Customer `json:"customer"`
+	}
+
+	var req request
+	if err := s.requestParser(c, &req); err != nil {
+		return errors.E(errors.KindValidation, err)
+	}
+
+	customer := layerhub.NewCustomer()
+	customer.FirstName = req.FirstName
+	customer.LastName = req.LastName
+	customer.Email = req.Email
+	customer.CompanyID = req.CompanyID
+
+	err := s.Core.RegisterCustomer(c.Context(), customer, req.Password)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(response{customer})
+}
+
+func (s *Server) handleUserSignIn(c *fiber.Ctx) error {
 	type request struct {
 		Email    string `json:"email" validate:"email"`
 		Password string `json:"password" validate:"required"`
@@ -158,13 +185,57 @@ func (s *Server) handleSignIn(c *fiber.Ctx) error {
 		return err
 	}
 
-	csrfToken, err := s.initSession(c, user)
+	company, err := s.Core.GetCompany(c.Context(), user.CompanyID)
+	if err != nil {
+		return err
+	}
+
+	csrfToken, err := s.initUserSession(c, user, company)
 	if err != nil {
 		return err
 	}
 
 	resp := response{
 		User:      User{User: user},
+		CSRFToken: csrfToken,
+	}
+
+	return c.JSON(resp)
+}
+
+func (s *Server) handleCustomerSignIn(c *fiber.Ctx) error {
+	type request struct {
+		Email    string `json:"email" validate:"email"`
+		Password string `json:"password" validate:"required"`
+	}
+
+	type response struct {
+		Customer  *layerhub.Customer `json:"customer"`
+		CSRFToken string             `json:"csrf_token"`
+	}
+
+	var req request
+	if err := s.requestParser(c, &req); err != nil {
+		return errors.E(errors.KindValidation, err)
+	}
+
+	customer, err := s.Core.LoginCustomer(c.Context(), req.Email, req.Password)
+	if err != nil {
+		return err
+	}
+
+	company, err := s.Core.GetCompany(c.Context(), customer.CompanyID)
+	if err != nil {
+		return err
+	}
+
+	csrfToken, err := s.initCustomerSession(c, customer, company)
+	if err != nil {
+		return err
+	}
+
+	resp := response{
+		Customer:  customer,
 		CSRFToken: csrfToken,
 	}
 
@@ -198,7 +269,7 @@ func (s *Server) handleUpdateUserProfile(c *fiber.Ctx) error {
 	}
 
 	session, _ := s.getSession(c)
-	user, err := s.Core.GetUser(c.Context(), session.UserID)
+	user, err := s.Core.GetUser(c.Context(), session.User.ID)
 	if err != nil {
 		return err
 	}
@@ -268,7 +339,12 @@ func (s *Server) handleGithubCallback(c *fiber.Ctx) error {
 		return err
 	}
 
-	_, err = s.initSession(c, user)
+	companies, _, err := s.Core.FindCompanies(c.Context(), &layerhub.Filter{UserID: user.ID})
+	if err != nil {
+		return err
+	}
+
+	_, err = s.initUserSession(c, user, &companies[0])
 	if err != nil {
 		return err
 	}
@@ -300,7 +376,12 @@ func (s *Server) handleGoogleCallback(c *fiber.Ctx) error {
 		return err
 	}
 
-	_, err = s.initSession(c, user)
+	companies, _, err := s.Core.FindCompanies(c.Context(), &layerhub.Filter{UserID: user.ID})
+	if err != nil {
+		return err
+	}
+
+	_, err = s.initUserSession(c, user, &companies[0])
 	if err != nil {
 		return err
 	}
@@ -317,7 +398,7 @@ func (s *Server) handleCurrentUser(c *fiber.Ctx) error {
 
 	session, _ := s.getSession(c)
 
-	user, err := s.Core.GetUser(c.Context(), session.UserID)
+	user, err := s.Core.GetUser(c.Context(), session.User.ID)
 	if err != nil {
 		return err
 	}

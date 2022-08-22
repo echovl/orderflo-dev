@@ -26,7 +26,6 @@ type Template struct {
 	Colors      []string  `json:"colors" bson:"colors"`
 	CustomerID  string    `json:"customer_id" db:"customer_id"`
 	CompanyID   string    `json:"company_id" db:"company_id"`
-	UserID      string    `json:"user_id" db:"user_id"`
 	CreatedAt   time.Time `json:"created_at" bson:"created_at" db:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at" bson:"updated_at" db:"updated_at"`
 
@@ -147,7 +146,6 @@ type Project struct {
 	Name        string    `json:"name" db:"name"`
 	CustomerID  string    `json:"customer_id" db:"customer_id"`
 	CompanyID   string    `json:"company_id" db:"company_id"`
-	UserID      string    `json:"user_id" db:"user_id"`
 	Description string    `json:"description"`
 	CreatedAt   time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
@@ -280,7 +278,6 @@ type Frame struct {
 	Public         bool      `json:"public" db:"public"`
 	CustomerID     string    `json:"customer_id,omitempty" db:"customer_id"`
 	CompanyID      string    `json:"company_id,omitempty" db:"company_id"`
-	UserID         string    `json:"user_id,omitempty" db:"user_id"`
 }
 
 func NewFrame() *Frame {

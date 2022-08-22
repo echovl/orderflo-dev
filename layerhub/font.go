@@ -25,7 +25,6 @@ type Font struct {
 	Category       string `json:"category" db:"category"`
 	CustomerID     string `json:"customer_id,omitempty" db:"customer_id"`
 	CompanyID      string `json:"company_id,omitempty" db:"company_id"`
-	UserID         string `json:"user_id,omitempty" db:"user_id"`
 	Public         bool   `json:"public" db:"public"`
 }
 

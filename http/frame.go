@@ -34,16 +34,10 @@ func (s *Server) handleCreateFrame(c *fiber.Ctx) error {
 	frame.Width = req.Width
 	frame.Height = req.Height
 	frame.Unit = req.Unit
-	frame.UserID = session.UserID
+	frame.CompanyID = session.Company.ID
 
-	if !session.IsWeb {
-		if req.CustomerID == "" {
-			return errors.Validation("'request.customer_id' with value '' failed the 'required' validation")
-		}
-		frame.CustomerID = req.CustomerID
-		frame.CompanyID = session.CompanyID
-	} else {
-		frame.CompanyID = req.CompanyID
+	if session.Customer != nil {
+		frame.CustomerID = session.Customer.ID
 	}
 
 	err := s.Core.PutFrame(c.Context(), frame)
@@ -78,11 +72,11 @@ func (s *Server) handleUpdateFrame(c *fiber.Ctx) error {
 		return err
 	}
 
-	if frame.UserID != session.UserID {
+	if frame.CompanyID != session.Company.ID {
 		return errors.Authorization(frame.ID)
 	}
 
-	if !session.IsWeb && frame.CompanyID != session.CompanyID {
+	if session.Customer != nil && frame.CustomerID != session.Customer.ID {
 		return errors.Authorization(frame.ID)
 	}
 
@@ -111,11 +105,11 @@ func (s *Server) handleGetFrame(c *fiber.Ctx) error {
 	}
 
 	if !frame.Public {
-		if frame.UserID != session.UserID {
+		if frame.CompanyID != session.Company.ID {
 			return errors.Authorization(frame.ID)
 		}
 
-		if !session.IsWeb && frame.CompanyID != "" && frame.CompanyID != session.CompanyID {
+		if session.Customer != nil && frame.CustomerID != session.Customer.ID {
 			return errors.Authorization(frame.ID)
 		}
 	}
@@ -126,7 +120,6 @@ func (s *Server) handleGetFrame(c *fiber.Ctx) error {
 func (s *Server) handleListFrames(c *fiber.Ctx) error {
 	type request struct {
 		CustomerID string `query:"customer_id"`
-		CompanyID  string `query:"company_id"`
 		Limit      int    `query:"limit"`
 		Offset     int    `query:"offset"`
 	}
@@ -144,15 +137,14 @@ func (s *Server) handleListFrames(c *fiber.Ctx) error {
 	session, _ := s.getSession(c)
 	filter := &layerhub.Filter{
 		OptionalCustomerID: req.CustomerID,
-		OptionalCompanyID:  session.CompanyID,
-		OptionalUserID:     session.UserID,
+		OptionalCompanyID:  session.Company.ID,
 		UsedInTemplate:     ptr.Bool(false),
 		Limit:              req.Limit,
 		Offset:             req.Offset,
 	}
 
-	if session.IsWeb {
-		filter.OptionalCompanyID = req.CompanyID
+	if session.Customer != nil {
+		filter.OptionalCustomerID = session.Customer.ID
 	}
 
 	frames, count, err := s.Core.FindFrames(c.Context(), filter)
@@ -174,11 +166,11 @@ func (s *Server) handleDeleteFrame(c *fiber.Ctx) error {
 		return err
 	}
 
-	if frame.UserID != session.UserID {
+	if frame.CompanyID != session.Company.ID {
 		return errors.Authorization(frame.ID)
 	}
 
-	if !session.IsWeb && frame.CompanyID != session.CompanyID {
+	if session.Customer != nil && frame.CustomerID != session.Customer.ID {
 		return errors.Authorization(frame.ID)
 	}
 

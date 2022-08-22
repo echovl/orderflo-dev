@@ -9,56 +9,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func (s *Server) handleCreateCustomer(c *fiber.Ctx) error {
-	type request struct {
-		FistName  string `json:"first_name"`
-		LastName  string `json:"last_name"`
-		Email     string `json:"email"`
-		CompanyID string `json:"company_id"`
-	}
-
-	type response struct {
-		Customer *layerhub.Customer `json:"customer"`
-	}
-
-	var req request
-	if err := s.requestParser(c, &req); err != nil {
-		return errors.E(errors.KindValidation, err)
-	}
-
-	session, _ := s.getSession(c)
-	customer := layerhub.NewCustomer()
-	customer.FirstName = req.FistName
-	customer.LastName = req.LastName
-	customer.Email = req.Email
-	customer.UserID = session.UserID
-	customer.CompanyID = session.CompanyID
-
-	if session.IsWeb {
-		if req.CompanyID == "" {
-			return errors.E(errors.KindValidation, "'company_id' with value '' failed the 'required' validation")
-		}
-
-		company, err := s.Core.GetCompany(c.Context(), req.CompanyID)
-		if err != nil {
-			return err
-		}
-
-		if company.UserID != session.UserID {
-			return errors.NotFound(fmt.Sprintf("company '%s' not found", company.ID))
-		}
-
-		customer.CompanyID = req.CompanyID
-	}
-
-	err := s.Core.PutCustomer(c.Context(), customer)
-	if err != nil {
-		return err
-	}
-
-	return c.JSON(response{customer})
-}
-
 func (s *Server) handleUpdateCustomer(c *fiber.Ctx) error {
 	type request struct {
 		FirstName string `json:"first_name"`
@@ -82,11 +32,11 @@ func (s *Server) handleUpdateCustomer(c *fiber.Ctx) error {
 		return err
 	}
 
-	if customer.UserID != session.UserID {
+	if customer.CompanyID != session.Company.ID {
 		return errors.NotFound(fmt.Sprintf("customer '%s' not found", id))
 	}
 
-	if !session.IsWeb && (customer.CompanyID != session.CompanyID) {
+	if session.Customer != nil && (customer.ID != session.Customer.ID) {
 		return errors.NotFound(fmt.Sprintf("customer '%s' not found", id))
 	}
 
@@ -96,6 +46,22 @@ func (s *Server) handleUpdateCustomer(c *fiber.Ctx) error {
 
 	err = s.Core.PutCustomer(c.Context(), customer)
 	if err != nil {
+		return err
+	}
+
+	return c.JSON(response{customer})
+}
+
+func (s *Server) handleCurrentCustomer(c *fiber.Ctx) error {
+	type response struct {
+		Customer *layerhub.Customer `json:"customer"`
+	}
+
+	session, _ := s.getSession(c)
+	customer, err := s.Core.GetCustomer(c.Context(), session.Customer.ID)
+	if errors.Is(err, errors.KindNotFound) {
+		return errors.NotFound(fmt.Sprintf("customer '%s' not found", session.Customer.ID))
+	} else if err != nil {
 		return err
 	}
 
@@ -116,11 +82,11 @@ func (s *Server) handleGetCustomer(c *fiber.Ctx) error {
 		return err
 	}
 
-	if customer.UserID != session.UserID {
+	if customer.CompanyID != session.Company.ID {
 		return errors.NotFound(fmt.Sprintf("customer '%s' not found", id))
 	}
 
-	if !session.IsWeb && (customer.CompanyID != session.CompanyID) {
+	if session.Customer != nil && (customer.ID != session.Customer.ID) {
 		return errors.NotFound(fmt.Sprintf("customer '%s' not found", id))
 	}
 
@@ -145,8 +111,7 @@ func (s *Server) handleListCustomers(c *fiber.Ctx) error {
 
 	session, _ := s.getSession(c)
 	customers, count, err := s.Core.FindCustomers(c.Context(), &layerhub.Filter{
-		CompanyID: session.CompanyID,
-		UserID:    session.UserID,
+		CompanyID: session.Company.ID,
 		Limit:     req.Limit,
 		Offset:    req.Offset,
 	})
@@ -169,11 +134,11 @@ func (s *Server) handleDeleteCustomer(c *fiber.Ctx) error {
 		return err
 	}
 
-	if customer.UserID != session.UserID {
+	if customer.CompanyID != session.Company.ID {
 		return errors.NotFound(fmt.Sprintf("customer '%s' not found", id))
 	}
 
-	if !session.IsWeb && (customer.CompanyID != session.CompanyID) {
+	if session.Customer != nil && (customer.ID != session.Customer.ID) {
 		return errors.NotFound(fmt.Sprintf("customer '%s' not found", id))
 	}
 

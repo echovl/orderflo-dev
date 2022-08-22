@@ -15,16 +15,16 @@ type Upload struct {
 	Folder      string    `json:"folder" db:"folder"`
 	Type        string    `json:"type" db:"type"`
 	URL         string    `json:"url" db:"url"`
-	UserID      string    `json:"user_id" db:"user_id"`
+	CompanyID   string    `json:"company_id" db:"company_id"`
+	CustomerID  string    `json:"customer_id" db:"customer_id"`
 	CreatedAt   time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
 }
 
-func NewUpload(userID string) *Upload {
+func NewUpload() *Upload {
 	now := Now()
 	return &Upload{
 		ID:        UniqueID("upload"),
-		UserID:    userID,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
@@ -47,18 +47,11 @@ func (c *Core) GetSignedURL(ctx context.Context, filename string) (string, error
 	return c.uploader.GetPresignedURL(ctx, filename)
 }
 
-func (c *Core) CreateUpload(ctx context.Context, userID string, filename string) (*Upload, error) {
-	upload := NewUpload(userID)
-
-	upload.Name = filename
-	upload.Folder = "/"
-	upload.URL = "https://ik.imagekit.io/scenify/" + filename
-
+func (c *Core) PutUpload(ctx context.Context, upload *Upload) error {
 	if err := c.db.PutUpload(ctx, upload); err != nil {
-		return nil, err
+		return err
 	}
-
-	return upload, nil
+	return nil
 }
 
 func (c *Core) GetUpload(ctx context.Context, id string) (*Upload, error) {

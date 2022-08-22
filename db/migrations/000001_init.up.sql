@@ -10,9 +10,10 @@ CREATE TABLE
     avatar VARCHAR(255) NOT NULL,
     email_verified BOOL NOT NULL,
     phone_verified BOOL NOT NULL,
-    kind VARCHAR(255) NOT NULL,
+    role VARCHAR(255) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     source VARCHAR(255) NOT NULL,
+    company_id VARCHAR(255) NOT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     PRIMARY KEY (id)
@@ -22,8 +23,6 @@ CREATE TABLE
   IF NOT EXISTS companies (
     id VARCHAR(50),
     name VARCHAR(255) NOT NULL,
-    user_id VARCHAR(255) NOT NULL,
-    api_token VARCHAR(255) NOT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     PRIMARY KEY (id)
@@ -35,8 +34,9 @@ CREATE TABLE
     first_name VARCHAR(255) NOT NULL,
     last_name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
     company_id VARCHAR(255) NOT NULL,
-    user_id VARCHAR(255) NOT NULL,
+    source VARCHAR(255) NOT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     PRIMARY KEY (id)
@@ -50,7 +50,8 @@ CREATE TABLE
     folder VARCHAR(255) NOT NULL,
     type VARCHAR(255) NOT NULL,
     url VARCHAR(1000) NOT NULL,
-    user_id VARCHAR(255) NOT NULL,
+    company_id VARCHAR(255) NOT NULL,
+    customer_id VARCHAR(255) NOT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     PRIMARY KEY (id)
@@ -68,7 +69,6 @@ CREATE TABLE
     category VARCHAR(255) NOT NULL,
     customer_id VARCHAR(50) NOT NULL,
     company_id VARCHAR(50) NOT NULL,
-    user_id VARCHAR(50) NOT NULL,
     public BOOLEAN NOT NULL,
     PRIMARY KEY (id)
   );
@@ -93,7 +93,6 @@ CREATE TABLE
     used_in_template BOOLEAN NOT NULL,
     customer_id VARCHAR(50) NOT NULL,
     company_id VARCHAR(50) NOT NULL,
-    user_id VARCHAR(50) NOT NULL,
     PRIMARY KEY (id)
   );
 
@@ -106,7 +105,6 @@ CREATE TABLE
     preview VARCHAR(255) NOT NULL,
     customer_id VARCHAR(255) NOT NULL,
     company_id VARCHAR(255) NOT NULL,
-    user_id VARCHAR(255) NOT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     PRIMARY KEY (id)
@@ -136,7 +134,6 @@ CREATE TABLE
     preview VARCHAR(255) NOT NULL,
     customer_id VARCHAR(255) NOT NULL,
     company_id VARCHAR(255) NOT NULL,
-    user_id VARCHAR(255) NOT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     PRIMARY KEY (id)

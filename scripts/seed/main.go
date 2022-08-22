@@ -22,10 +22,10 @@ func main() {
 
 	}
 
-	err = createAdmins(db)
-	if err != nil {
-		log.Fatalf("creating admins: %s", err)
-	}
+	// err = createAdmins(db)
+	// if err != nil {
+	// 	log.Fatalf("creating admins: %s", err)
+	// }
 
 	err = createPublicFonts(db)
 	if err != nil {
@@ -47,8 +47,8 @@ func createAdmins(db layerhub.DB) error {
 			Email:         "alonso.villegas@backium.co",
 			PasswordHash:  "$2a$10$4MTHXX/xuCK2bFpfOgrvL.ELkhTUpmJRVDr1my1i9JaIaPI2t4Sre", // Test@123!
 			EmailVerified: true,
-			Kind:          layerhub.UserKindAdmin,
-			Source:        layerhub.UserSourceEmail,
+			Role:          layerhub.UserRoleOwner,
+			Source:        layerhub.AuthSourceEmail,
 			CreatedAt:     time.Now(),
 			UpdatedAt:     time.Now(),
 		},

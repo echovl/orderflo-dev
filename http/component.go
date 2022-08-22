@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/echovl/orderflo-dev/assign"
@@ -32,16 +31,10 @@ func (s *Server) handleCreateComponent(c *fiber.Ctx) error {
 	component.Name = req.Name
 	component.Layers = req.Layers
 	component.Metadata = req.Metadata
-	component.UserID = session.UserID
+	component.CompanyID = session.Company.ID
 
-	if !session.IsWeb {
-		if req.CustomerID == "" {
-			return errors.E(errors.KindValidation, "'customer_id' with value '' failed the 'required' validation")
-		}
-		component.CustomerID = req.CustomerID
-		component.CompanyID = session.CompanyID
-	} else {
-		component.Public = true
+	if session.Customer != nil {
+		component.CustomerID = session.Customer.ID
 	}
 
 	err := s.Core.PutComponent(c.Context(), component)
@@ -76,8 +69,12 @@ func (s *Server) handleUpdateComponent(c *fiber.Ctx) error {
 		return err
 	}
 
-	if !session.IsAdmin() && component.UserID != session.UserID {
-		return errors.NotFound(fmt.Sprintf("component '%s' not found", id))
+	if component.CompanyID != session.Company.ID {
+		return errors.Authorization(component.ID)
+	}
+
+	if session.Customer != nil && component.CustomerID != session.Customer.ID {
+		return errors.Authorization(component.ID)
 	}
 
 	if err := assign.Structs(component, req); err != nil {
@@ -107,13 +104,14 @@ func (s *Server) handleGetComponent(c *fiber.Ctx) error {
 	}
 
 	if !component.Public {
-		if component.UserID != session.UserID {
-			return errors.NotFound(fmt.Sprintf("component '%s' not found", id))
+		if component.CompanyID != session.Company.ID {
+			return errors.Authorization(component.ID)
 		}
 
-		if !session.IsWeb && component.CompanyID != session.CompanyID {
-			return errors.NotFound(fmt.Sprintf("component '%s' not found", id))
+		if session.Customer != nil && component.CustomerID != session.Customer.ID {
+			return errors.Authorization(component.ID)
 		}
+
 	}
 
 	return c.JSON(response{component})
@@ -121,8 +119,9 @@ func (s *Server) handleGetComponent(c *fiber.Ctx) error {
 
 func (s *Server) handleListComponent(c *fiber.Ctx) error {
 	type request struct {
-		Limit  int `query:"limit"`
-		Offset int `query:"offset"`
+		CustomerID string `query:"customer_id"`
+		Limit      int    `query:"limit"`
+		Offset     int    `query:"offset"`
 	}
 
 	type response struct {
@@ -136,10 +135,21 @@ func (s *Server) handleListComponent(c *fiber.Ctx) error {
 	}
 
 	session, _ := s.getSession(c)
+	filter := &layerhub.Filter{
+		OptionalCustomerID: req.CustomerID,
+		OptionalCompanyID:  session.Company.ID,
+		Limit:              req.Limit,
+		Offset:             req.Offset,
+	}
+
+	if session.Customer != nil {
+		filter.OptionalCustomerID = session.Customer.ID
+	}
+
 	components, count, err := s.Core.FindComponents(c.Context(), &layerhub.Filter{
-		UserID: session.UserID,
-		Limit:  req.Limit,
-		Offset: req.Offset,
+		OptionalCompanyID: session.Company.ID,
+		Limit:             req.Limit,
+		Offset:            req.Offset,
 	})
 	if err != nil {
 		return err
@@ -161,8 +171,12 @@ func (s *Server) handleDeleteComponent(c *fiber.Ctx) error {
 		return err
 	}
 
-	if !session.IsAdmin() && component.UserID != session.UserID {
-		return errors.NotFound(fmt.Sprintf("component '%s' not found", id))
+	if component.CompanyID != session.Company.ID {
+		return errors.Authorization(component.ID)
+	}
+
+	if session.Customer != nil && component.CustomerID != session.Customer.ID {
+		return errors.Authorization(component.ID)
 	}
 
 	err = s.Core.DeleteComponent(c.Context(), id)

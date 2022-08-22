@@ -31,23 +31,16 @@ func (s *Server) handleListTemplate(c *fiber.Ctx) error {
 	session, _ := s.getSession(c)
 	filter := &layerhub.Filter{
 		OptionalCustomerID: req.CustomerID,
-		OptionalCompanyID:  session.CompanyID,
-		OptionalUserID:     session.UserID,
+		OptionalCompanyID:  session.Company.ID,
 		Limit:              req.Limit,
 		Offset:             req.Offset,
 	}
 
-	if session.IsWeb {
-		filter.OptionalCompanyID = req.CompanyID
+	if session.Customer != nil {
+		filter.OptionalCustomerID = session.Customer.ID
 	}
 
-	templates, count, err := s.Core.FindTemplates(c.Context(), &layerhub.Filter{
-		OptionalCustomerID: req.CustomerID,
-		OptionalCompanyID:  session.CompanyID,
-		OptionalUserID:     session.UserID,
-		Limit:              req.Limit,
-		Offset:             req.Offset,
-	})
+	templates, count, err := s.Core.FindTemplates(c.Context(), filter)
 	if err != nil {
 		return err
 	}
@@ -68,11 +61,11 @@ func (s *Server) handleGetTemplate(c *fiber.Ctx) error {
 	}
 
 	if !template.Public {
-		if template.UserID != session.UserID {
+		if template.CompanyID != session.Company.ID {
 			return errors.Authorization(template.ID)
 		}
 
-		if !session.IsWeb && template.CompanyID != "" && template.CompanyID != session.CompanyID {
+		if session.Customer != nil && template.CustomerID != session.Customer.ID {
 			return errors.Authorization(template.ID)
 		}
 	}
@@ -142,16 +135,10 @@ func (s *Server) handleCreateTemplate(c *fiber.Ctx) error {
 	template.Frame = req.Frame
 	template.Metadata = req.Metadata
 	template.Layers = req.Layers
-	template.UserID = session.UserID
+	template.CompanyID = session.Company.ID
 
-	if !session.IsWeb {
-		if req.CustomerID == "" {
-			return errors.Validation("'request.customer_id' with value '' failed the 'required' validation")
-		}
+	if session.Customer != nil {
 		template.CustomerID = req.CustomerID
-		template.CompanyID = session.CompanyID
-	} else {
-		template.CompanyID = req.CompanyID
 	}
 
 	if req.ID != "" {
@@ -193,11 +180,11 @@ func (s *Server) handleUpdateTemplate(c *fiber.Ctx) error {
 		return err
 	}
 
-	if template.UserID != session.UserID {
+	if template.CompanyID != session.Company.ID {
 		return errors.Authorization(template.ID)
 	}
 
-	if !session.IsWeb && template.CompanyID != "" && template.CompanyID != session.CompanyID {
+	if session.Customer != nil && template.CustomerID != session.Customer.ID {
 		return errors.Authorization(template.ID)
 	}
 
@@ -226,11 +213,11 @@ func (s *Server) handleDeleteTemplate(c *fiber.Ctx) error {
 		return err
 	}
 
-	if template.UserID != session.UserID {
+	if template.CompanyID != session.Company.ID {
 		return errors.Authorization(template.ID)
 	}
 
-	if !session.IsWeb && template.CompanyID != "" && template.CompanyID != session.CompanyID {
+	if session.Customer != nil && template.CustomerID != session.Customer.ID {
 		return errors.Authorization(template.ID)
 	}
 

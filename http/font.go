@@ -76,23 +76,16 @@ func (s *Server) handleCreateFont(c *fiber.Ctx) error {
 	}
 
 	session, _ := s.getSession(c)
-
 	font := layerhub.NewFont()
 	font.Family = req.Family
 	font.FullName = req.FullName
 	font.Style = req.Style
 	font.URL = req.URL
 	font.Category = req.Category
-	font.UserID = session.UserID
+	font.CompanyID = session.Company.ID
 
-	if !session.IsWeb {
-		if req.CustomerID == "" {
-			return errors.Validation("'customer_id' with value '' failed the 'required' validation")
-		}
-		font.CustomerID = req.CustomerID
-		font.CompanyID = session.CompanyID
-	} else {
-		font.CompanyID = req.CompanyID
+	if session.Customer != nil {
+		font.CustomerID = session.Customer.ID
 	}
 
 	err := s.Core.PutFont(c.Context(), font)
@@ -127,11 +120,11 @@ func (s *Server) handleUpdateFont(c *fiber.Ctx) error {
 		return err
 	}
 
-	if font.UserID != session.UserID {
+	if font.CompanyID != session.Company.ID {
 		return errors.Authorization(font.ID)
 	}
 
-	if !session.IsWeb && font.CompanyID != session.CompanyID {
+	if session.Customer != nil && font.CustomerID != session.Customer.ID {
 		return errors.Authorization(font.ID)
 	}
 
@@ -162,11 +155,11 @@ func (s *Server) handleGetFont(c *fiber.Ctx) error {
 	}
 
 	if !font.Public {
-		if font.UserID != session.UserID {
+		if font.CompanyID != session.Company.ID {
 			return errors.Authorization(font.ID)
 		}
 
-		if !session.IsWeb && font.CompanyID != "" && font.CompanyID != session.CompanyID {
+		if session.Customer != nil && font.CustomerID != session.Customer.ID {
 			return errors.Authorization(font.ID)
 		}
 	}
@@ -194,15 +187,20 @@ func (s *Server) handleListFonts(c *fiber.Ctx) error {
 	}
 
 	session, _ := s.getSession(c)
-	fonts, count, err := s.Core.FindFonts(c.Context(), &layerhub.Filter{
+	filter := &layerhub.Filter{
 		OptionalCustomerID: req.CustomerID,
-		OptionalCompanyID:  session.CompanyID,
-		OptionalUserID:     session.UserID,
+		OptionalCompanyID:  session.Company.ID,
 		PostscriptName:     req.PostscriptName,
 		EnabledFonts:       req.Enabled,
 		Limit:              req.Limit,
 		Offset:             req.Offset,
-	})
+	}
+
+	if session.Customer != nil {
+		filter.OptionalCustomerID = session.Customer.ID
+	}
+
+	fonts, count, err := s.Core.FindFonts(c.Context(), filter)
 	if err != nil {
 		return err
 	}
@@ -217,17 +215,16 @@ func (s *Server) handleDeleteFont(c *fiber.Ctx) error {
 
 	session, _ := s.getSession(c)
 	id := string(c.Params("id"))
-
 	font, err := s.Core.GetFont(c.Context(), id)
 	if err != nil {
 		return err
 	}
 
-	if font.UserID != session.UserID {
+	if font.CompanyID != session.Company.ID {
 		return errors.Authorization(font.ID)
 	}
 
-	if !session.IsWeb && font.CompanyID != session.CompanyID {
+	if session.Customer != nil && font.CustomerID != session.Customer.ID {
 		return errors.Authorization(font.ID)
 	}
 

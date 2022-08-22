@@ -2039,7 +2039,7 @@ func TestMySQL_PutUpload(t *testing.T) {
 			newUpload: layerhub.Upload{
 				ID:        "upload_1",
 				Name:      "Fake image",
-				UserID:    "user_1",
+				CompanyID: "company_1",
 				URL:       "cloudfront.com/uploads/1.png",
 				CreatedAt: now,
 				UpdatedAt: now,
@@ -2047,7 +2047,7 @@ func TestMySQL_PutUpload(t *testing.T) {
 			expectedUpload: layerhub.Upload{
 				ID:        "upload_1",
 				Name:      "Fake image",
-				UserID:    "user_1",
+				CompanyID: "company_1",
 				URL:       "cloudfront.com/uploads/1.png",
 				CreatedAt: now,
 				UpdatedAt: now,
@@ -2058,7 +2058,7 @@ func TestMySQL_PutUpload(t *testing.T) {
 			newUpload: layerhub.Upload{
 				ID:        "upload_1",
 				Name:      "Fake image",
-				UserID:    "user_1",
+				CompanyID: "company_1",
 				URL:       "cloudfront.com/uploads/1.png",
 				CreatedAt: now,
 				UpdatedAt: now,
@@ -2067,7 +2067,7 @@ func TestMySQL_PutUpload(t *testing.T) {
 			expectedUpload: layerhub.Upload{
 				ID:        "upload_1",
 				Name:      "Fake image",
-				UserID:    "user_1",
+				CompanyID: "company_1",
 				URL:       "cloudfront.com/uploads/6.png",
 				CreatedAt: now,
 				UpdatedAt: now,
@@ -2137,7 +2137,7 @@ func TestMySQL_FindUploads(t *testing.T) {
 				{
 					ID:        "upload_1",
 					Name:      "Fake image",
-					UserID:    "user_1",
+					CompanyID: "company_1",
 					URL:       "cloudfront.com/uploads/1.png",
 					CreatedAt: now,
 					UpdatedAt: now,
@@ -2154,7 +2154,7 @@ func TestMySQL_FindUploads(t *testing.T) {
 				{
 					ID:        "upload_1",
 					Name:      "Fake image",
-					UserID:    "user_1",
+					CompanyID: "company_1",
 					URL:       "cloudfront.com/uploads/1.png",
 					CreatedAt: now,
 					UpdatedAt: now,
@@ -2162,7 +2162,7 @@ func TestMySQL_FindUploads(t *testing.T) {
 				{
 					ID:        "upload_2",
 					Name:      "Fake image",
-					UserID:    "user_1",
+					CompanyID: "company_1",
 					URL:       "cloudfront.com/uploads/2.png",
 					CreatedAt: now,
 					UpdatedAt: now,
@@ -2172,7 +2172,7 @@ func TestMySQL_FindUploads(t *testing.T) {
 				{
 					ID:        "upload_2",
 					Name:      "Fake image",
-					UserID:    "user_1",
+					CompanyID: "company_1",
 					URL:       "cloudfront.com/uploads/2.png",
 					CreatedAt: now,
 					UpdatedAt: now,
@@ -2186,7 +2186,7 @@ func TestMySQL_FindUploads(t *testing.T) {
 				{
 					ID:        "upload_1",
 					Name:      "Fake image",
-					UserID:    "user_1",
+					CompanyID: "company_1",
 					URL:       "cloudfront.com/uploads/1.png",
 					CreatedAt: now,
 					UpdatedAt: now,
@@ -2194,7 +2194,7 @@ func TestMySQL_FindUploads(t *testing.T) {
 				{
 					ID:        "upload_2",
 					Name:      "Fake image",
-					UserID:    "user_1",
+					CompanyID: "company_1",
 					URL:       "cloudfront.com/uploads/2.png",
 					CreatedAt: now,
 					UpdatedAt: now,
@@ -2204,7 +2204,7 @@ func TestMySQL_FindUploads(t *testing.T) {
 				{
 					ID:        "upload_1",
 					Name:      "Fake image",
-					UserID:    "user_1",
+					CompanyID: "company_1",
 					URL:       "cloudfront.com/uploads/1.png",
 					CreatedAt: now,
 					UpdatedAt: now,
@@ -2212,7 +2212,7 @@ func TestMySQL_FindUploads(t *testing.T) {
 				{
 					ID:        "upload_2",
 					Name:      "Fake image",
-					UserID:    "user_1",
+					CompanyID: "company_1",
 					URL:       "cloudfront.com/uploads/2.png",
 					CreatedAt: now,
 					UpdatedAt: now,
@@ -2275,7 +2275,7 @@ func TestMySQL_CountUploads(t *testing.T) {
 				{
 					ID:        "upload_1",
 					Name:      "Fake image",
-					UserID:    "user_1",
+					CompanyID: "company_1",
 					URL:       "cloudfront.com/uploads/1.png",
 					CreatedAt: now,
 					UpdatedAt: now,
@@ -2292,7 +2292,7 @@ func TestMySQL_CountUploads(t *testing.T) {
 				{
 					ID:        "upload_1",
 					Name:      "Fake image",
-					UserID:    "user_1",
+					CompanyID: "company_1",
 					URL:       "cloudfront.com/uploads/1.png",
 					CreatedAt: now,
 					UpdatedAt: now,
@@ -2300,7 +2300,7 @@ func TestMySQL_CountUploads(t *testing.T) {
 				{
 					ID:        "upload_2",
 					Name:      "Fake image",
-					UserID:    "user_1",
+					CompanyID: "company_1",
 					URL:       "cloudfront.com/uploads/2.png",
 					CreatedAt: now,
 					UpdatedAt: now,
@@ -2315,7 +2315,7 @@ func TestMySQL_CountUploads(t *testing.T) {
 				{
 					ID:        "upload_1",
 					Name:      "Fake image",
-					UserID:    "user_1",
+					CompanyID: "company_1",
 					URL:       "cloudfront.com/uploads/1.png",
 					CreatedAt: now,
 					UpdatedAt: now,
@@ -2323,7 +2323,7 @@ func TestMySQL_CountUploads(t *testing.T) {
 				{
 					ID:        "upload_2",
 					Name:      "Fake image",
-					UserID:    "user_1",
+					CompanyID: "company_1",
 					URL:       "cloudfront.com/uploads/2.png",
 					CreatedAt: now,
 					UpdatedAt: now,
@@ -2386,7 +2386,7 @@ func TestMySQL_DeleteUploads(t *testing.T) {
 				{
 					ID:        "upload_1",
 					Name:      "Fake image",
-					UserID:    "user_1",
+					CompanyID: "company_1",
 					URL:       "cloudfront.com/uploads/1.png",
 					CreatedAt: now,
 					UpdatedAt: now,
@@ -2400,7 +2400,7 @@ func TestMySQL_DeleteUploads(t *testing.T) {
 				{
 					ID:        "upload_1",
 					Name:      "Fake image",
-					UserID:    "user_1",
+					CompanyID: "company_1",
 					URL:       "cloudfront.com/uploads/1.png",
 					CreatedAt: now,
 					UpdatedAt: now,

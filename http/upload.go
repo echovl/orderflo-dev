@@ -1,19 +1,19 @@
 package http
 
 import (
-	"fmt"
 	"mime"
 	"path"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/echovl/orderflo-dev/errors"
 	"github.com/echovl/orderflo-dev/layerhub"
+	"github.com/gofiber/fiber/v2"
 )
 
 func (s *Server) handleListUpload(c *fiber.Ctx) error {
 	type request struct {
-		Limit  int `query:"limit"`
-		Offset int `query:"offset"`
+		CustomerID string `query:"customer_id"`
+		Limit      int    `query:"limit"`
+		Offset     int    `query:"offset"`
 	}
 
 	type response struct {
@@ -27,11 +27,18 @@ func (s *Server) handleListUpload(c *fiber.Ctx) error {
 	}
 
 	session, _ := s.getSession(c)
-	uploads, count, err := s.Core.FindUploads(c.Context(), &layerhub.Filter{
-		UserID: session.UserID,
-		Limit:  req.Limit,
-		Offset: req.Offset,
-	})
+	filter := &layerhub.Filter{
+		OptionalCustomerID: req.CustomerID,
+		OptionalCompanyID:  session.Company.ID,
+		Limit:              req.Limit,
+		Offset:             req.Offset,
+	}
+
+	if session.Customer != nil {
+		filter.OptionalCustomerID = session.Customer.ID
+	}
+
+	uploads, count, err := s.Core.FindUploads(c.Context(), filter)
 	if err != nil {
 		return err
 	}
@@ -80,10 +87,14 @@ func (s *Server) handleCreateUpload(c *fiber.Ctx) error {
 	}
 
 	session, _ := s.getSession(c)
-	upload, err := s.Core.CreateUpload(
-		c.Context(),
-		session.UserID,
-		req.Filename)
+	upload := layerhub.NewUpload()
+	upload.CompanyID = session.Company.ID
+
+	if session.Customer != nil {
+		upload.CustomerID = session.Customer.ID
+	}
+
+	err := s.Core.PutUpload(c.Context(), upload)
 	if err != nil {
 		return err
 	}
@@ -104,8 +115,12 @@ func (s *Server) handleDeleteUpload(c *fiber.Ctx) error {
 		return err
 	}
 
-	if !session.IsAdmin() && upload.UserID != session.UserID {
-		return errors.NotFound(fmt.Sprintf("upload '%s' not found", id))
+	if upload.CompanyID != session.Company.ID {
+		return errors.Authorization(upload.ID)
+	}
+
+	if session.Customer != nil && upload.CustomerID != session.Customer.ID {
+		return errors.Authorization(upload.ID)
 	}
 
 	err = s.Core.DeleteUpload(c.Context(), id)

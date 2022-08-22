@@ -20,7 +20,7 @@ type Filter struct {
 	EnabledFonts     *bool
 	Public           *bool
 	UsedInTemplate   *bool
-	UserSource       UserSource
+	AuthSource       AuthSource
 
 	OptionalCustomerID string
 	OptionalCompanyID  string

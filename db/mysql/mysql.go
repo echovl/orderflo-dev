@@ -67,12 +67,13 @@ func (s *MySQLDB) PutUser(ctx context.Context, user *layerhub.User) error {
         avatar,
         email_verified,
         phone_verified,
-        kind,
+        role,
         password_hash,
         source,
+        company_id,
         created_at,
         updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
         first_name=VALUES(first_name),
         last_name=VALUES(last_name),
         email=VALUES(email),
@@ -80,7 +81,7 @@ func (s *MySQLDB) PutUser(ctx context.Context, user *layerhub.User) error {
         avatar=VALUES(avatar),
         email_verified=VALUES(email_verified),
         phone_verified=VALUES(phone_verified),
-        kind=VALUES(kind),
+        role=VALUES(role),
         password_hash=VALUES(password_hash),
         updated_at=VALUES(updated_at)
     `
@@ -96,9 +97,10 @@ func (s *MySQLDB) PutUser(ctx context.Context, user *layerhub.User) error {
 		user.Avatar,
 		user.EmailVerified,
 		user.PhoneVerified,
-		user.Kind,
+		user.Role,
 		user.PasswordHash,
 		user.Source,
+		user.CompanyID,
 		user.CreatedAt,
 		user.UpdatedAt,
 	)
@@ -148,7 +150,6 @@ func (s *MySQLDB) BatchCreateFonts(ctx context.Context, fonts []layerhub.Font) e
             url,
             customer_id,
             company_id,
-            user_id,
             category,
             public
         ) VALUES `
@@ -156,7 +157,7 @@ func (s *MySQLDB) BatchCreateFonts(ctx context.Context, fonts []layerhub.Font) e
 		args := []any{}
 		values := []string{}
 		for _, pf := range fonts[batchStart:batchEnd] {
-			values = append(values, "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+			values = append(values, "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
 			args = append(
 				args,
 				pf.ID,
@@ -168,7 +169,6 @@ func (s *MySQLDB) BatchCreateFonts(ctx context.Context, fonts []layerhub.Font) e
 				pf.URL,
 				pf.CustomerID,
 				pf.CompanyID,
-				pf.UserID,
 				pf.Category,
 				pf.Public,
 			)
@@ -195,11 +195,12 @@ func (s *MySQLDB) PutCustomer(ctx context.Context, customer *layerhub.Customer) 
         first_name,
         last_name,
         email,
+        password_hash,
         company_id,
-        user_id,
+        source,
         created_at,
         updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
         first_name=VALUES(first_name),
         last_name=VALUES(last_name),
         email=VALUES(email),
@@ -213,8 +214,9 @@ func (s *MySQLDB) PutCustomer(ctx context.Context, customer *layerhub.Customer) 
 		customer.FirstName,
 		customer.LastName,
 		customer.Email,
+		customer.PasswordHash,
 		customer.CompanyID,
-		customer.UserID,
+		customer.Source,
 		customer.CreatedAt,
 		customer.UpdatedAt,
 	)
@@ -266,11 +268,9 @@ func (s *MySQLDB) PutCompany(ctx context.Context, company *layerhub.Company) err
 	query := `INSERT INTO companies (
         id,
         name,
-        api_token,
-        user_id,
         created_at,
         updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
+    ) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
         name=VALUES(name),
         updated_at=VALUES(updated_at)
     `
@@ -280,8 +280,6 @@ func (s *MySQLDB) PutCompany(ctx context.Context, company *layerhub.Company) err
 		query,
 		company.ID,
 		company.Name,
-		company.ApiToken,
-		company.UserID,
 		company.CreatedAt,
 		company.UpdatedAt,
 	)
@@ -343,6 +341,8 @@ func (s *MySQLDB) FindFonts(ctx context.Context, filter *layerhub.Filter) ([]lay
 		args = append([]any{filter.OptionalCustomerID}, args...)
 	}
 
+	fmt.Println(query+where, args)
+
 	err := s.db.SelectContext(ctx, &fonts, query+where, args...)
 	if err != nil {
 		return nil, errors.E(errors.KindUnexpected, err)
@@ -385,9 +385,8 @@ func (s MySQLDB) PutFont(ctx context.Context, font *layerhub.Font) error {
         category,
         customer_id,
         company_id,
-        user_id,
         public
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
         full_name=VALUES(full_name),
         family=VALUES(family),
         postscript_name=VALUES(postscript_name),
@@ -409,7 +408,6 @@ func (s MySQLDB) PutFont(ctx context.Context, font *layerhub.Font) error {
 		font.Category,
 		font.CustomerID,
 		font.CompanyID,
-		font.UserID,
 		font.Public,
 	)
 	if err != nil {
@@ -446,10 +444,9 @@ func (s *MySQLDB) PutTemplate(ctx context.Context, template *layerhub.Template) 
         preview,
         customer_id,
         company_id,
-        user_id,
         created_at,
         updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
         short_id=VALUES(short_id),
         name=VALUES(name),
         type=VALUES(type),
@@ -460,8 +457,7 @@ func (s *MySQLDB) PutTemplate(ctx context.Context, template *layerhub.Template) 
 
 	_, err = tx.ExecContext(
 		ctx,
-		query,
-		template.ID,
+		query, template.ID,
 		template.ShortID,
 		template.Name,
 		template.Type,
@@ -469,7 +465,6 @@ func (s *MySQLDB) PutTemplate(ctx context.Context, template *layerhub.Template) 
 		template.Preview,
 		template.CustomerID,
 		template.CompanyID,
-		template.UserID,
 		template.CreatedAt,
 		template.UpdatedAt,
 	)
@@ -614,9 +609,8 @@ func (s *MySQLDB) putFrame(ctx context.Context, ext ExtContext, frame *layerhub.
         preview,
         used_in_template,
         customer_id,
-        company_id,
-        user_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
+        company_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
         name=VALUES(name),
         public=VALUES(public),
         width=VALUES(width),
@@ -638,7 +632,6 @@ func (s *MySQLDB) putFrame(ctx context.Context, ext ExtContext, frame *layerhub.
 		frame.UsedInTemplate,
 		frame.CustomerID,
 		frame.CompanyID,
-		frame.UserID,
 	)
 	if err != nil {
 		return errors.E(errors.KindUnexpected, err)
@@ -703,10 +696,9 @@ func (s *MySQLDB) PutProject(ctx context.Context, project *layerhub.Project) err
         preview,
         customer_id,
         company_id,
-        user_id,
         created_at,
         updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
         short_id=VALUES(short_id),
         name=VALUES(name),
         type=VALUES(type),
@@ -724,7 +716,6 @@ func (s *MySQLDB) PutProject(ctx context.Context, project *layerhub.Project) err
 		project.Preview,
 		project.CustomerID,
 		project.CompanyID,
-		project.UserID,
 		project.CreatedAt,
 		project.UpdatedAt,
 	)
@@ -882,10 +873,11 @@ func (s *MySQLDB) PutUpload(ctx context.Context, upload *layerhub.Upload) error 
         folder,
         type,
         url,
-        user_id,
+        company_id,
+        customer_id,
         created_at,
         updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE 
         name=VALUES(name),
         content_type=VALUES(content_type),
         folder=VALUES(folder),
@@ -903,7 +895,8 @@ func (s *MySQLDB) PutUpload(ctx context.Context, upload *layerhub.Upload) error 
 		upload.Folder,
 		upload.Type,
 		upload.URL,
-		upload.UserID,
+		upload.CompanyID,
+		upload.CustomerID,
 		upload.CreatedAt,
 		upload.UpdatedAt,
 	)
@@ -1329,9 +1322,9 @@ func filterToQuery(table string, filter *layerhub.Filter) (string, []any) {
 			conds = append(conds, fmt.Sprintf("%s.company_id = ?", table))
 			args = append(args, filter.CompanyID)
 		}
-		if filter.UserSource != "" {
-			conds = append(conds, "users.source = ?")
-			args = append(args, filter.UserSource)
+		if filter.AuthSource != "" {
+			conds = append(conds, fmt.Sprintf("%s.source = ?", table))
+			args = append(args, filter.AuthSource)
 		}
 		if filter.Public != nil {
 			conds = append(conds, fmt.Sprintf("%s.public = ?", table))
