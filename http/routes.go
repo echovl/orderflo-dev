@@ -36,8 +36,16 @@ func (s *Server) initRoutes() {
 	api.Post("/fonts/enable", s.requireCompanySession, s.handleEnableFonts)
 	api.Post("/fonts/disable", s.requireCompanySession, s.handleDisableFonts)
 
-	api.Get("/frames", s.requireUserSession, s.handleListFrames)
-	api.Get("/frames/:id", s.requireUserSession, s.handleGetFrame)
+	web.Get("/frames", s.requireCompanySession, s.handleListFrames)
+	web.Get("/frames/:id", s.requireCompanySession, s.handleGetFrame)
+	web.Post("/frames", s.requireCompanySession, s.handleCreateFrame)
+	web.Put("/frames/:id", s.requireCompanySession, s.handleUpdateFrame)
+	web.Delete("/frames/:id", s.requireCompanySession, s.handleDeleteFrame)
+
+	api.Get("/resources/pixabay/images", s.requireCompanySession, s.handleFetchPixabayImages)
+	api.Get("/resources/pixabay/videos", s.requireCompanySession, s.handleFetchPixabayVideos)
+	api.Get("/resources/pexels/images", s.requireCompanySession, s.handleFetchPexelsImages)
+	api.Get("/resources/pexels/videos", s.requireCompanySession, s.handleFetchPexelsVideos)
 
 	web.Post("/auth/signup", s.handleSignUp)
 	web.Post("/auth/signin", s.handleSignIn)
